@@ -322,12 +322,32 @@ async function retestConnectionOnRefresh(tabId) {
 
     // Always notify for page refresh, whether connected or not
     // This ensures any ongoing discovery is cancelled and restarted
-    chrome.runtime.sendMessage({
-      type: "INITIATE_AUTO_DISCOVERY",
-      reason: "page_refresh",
-      tabId: tabId,
-      forceRestart: true, // Add a flag to indicate this should force restart any ongoing processes
-    });
+    try {
+      console.log(
+        `Background: Attempting to send INITIATE_AUTO_DISCOVERY (reason: page_refresh, tabId: ${tabId})`
+      );
+      chrome.runtime.sendMessage({
+        type: "INITIATE_AUTO_DISCOVERY",
+        reason: "page_refresh",
+        tabId: tabId,
+        forceRestart: true, // Add a flag to indicate this should force restart any ongoing processes
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes("Receiving end does not exist")
+      ) {
+        console.log(
+          `Background: Suppressed 'Receiving end does not exist' for INITIATE_AUTO_DISCOVERY (devtools likely not ready yet)`
+        );
+      } else {
+        // Re-throw other unexpected errors
+        console.error(
+          "Background: Unexpected error sending INITIATE_AUTO_DISCOVERY:",
+          error
+        );
+      }
+    }
 
     if (!isConnected) {
       console.log(

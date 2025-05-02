@@ -424,6 +424,18 @@ app.post("/extension-log", (req, res) => {
         timestamp: data.timestamp,
       };
       console.log("Adding network request:", logEntry);
+      // Store the full request data in the detailedNetworkLogCache for the getNetworkRequestDetails tool
+      console.log("[DEBUG] Adding detailed network log to cache");
+      detailedNetworkLogCache.push(data);
+      if (detailedNetworkLogCache.length > MAX_CACHE_SIZE) {
+        console.log(
+          `[DEBUG] Detailed network logs exceeded limit (${MAX_CACHE_SIZE}), removing oldest entry`
+        );
+        detailedNetworkLogCache.shift();
+      }
+      console.log(
+        `[DEBUG] Current detailedNetworkLogCache size: ${detailedNetworkLogCache.length}`
+      );
 
       // Route network requests based on status code
       if (data.status >= 400) {
@@ -507,6 +519,20 @@ app.post("/selected-element", (req, res) => {
 app.get("/selected-element", (req, res) => {
   res.json(selectedElement || { message: "No element selected" });
 });
+
+// In-memory cache for detailed network logs
+interface NetworkLogEntry {
+  url: string;
+  method: string;
+  status: number;
+  requestHeaders: any; // Adjust types as needed
+  responseHeaders: any; // Adjust types as needed
+  requestBody?: string;
+  responseBody?: string;
+  timestamp: number;
+}
+const detailedNetworkLogCache: NetworkLogEntry[] = [];
+const MAX_CACHE_SIZE = 50; // Limit cache size
 
 app.get("/.port", (req, res) => {
   res.send(PORT.toString());
@@ -852,11 +878,23 @@ export class BrowserConnector {
               const fullPath = path.join(response.path, filename);
 
               // Write the file
-              fs.writeFileSync(fullPath, base64Data, "base64");
-              resolve({
-                path: fullPath,
-                filename: filename,
-              });
+              try {
+                fs.writeFileSync(fullPath, base64Data, "base64");
+                resolve({
+                  path: fullPath,
+                  filename: filename,
+                });
+              } catch (err) {
+                console.error(
+                  `Error saving screenshot to: ${fullPath}`,
+                  err
+                );
+                throw new Error(
+                  `Failed to save screenshot: ${
+                    err instanceof Error ? err.message : String(err)
+                  }`
+                );
+              }
             }
           } catch (error) {
             reject(error);
@@ -1338,6 +1376,77 @@ export class BrowserConnector {
     auditFunction: (url: string) => Promise<LighthouseReport>
   ) {
     // Add server identity validation endpoint
+    // Add network request details endpoint
+    this.app.get(
+      "/network-request-details",
+      (req: express.Request, res: express.Response): void => {
+        console.log("[DEBUG] Received /network-request-details query:");
+        console.log("[DEBUG]   urlFilter:", req.query.urlFilter);
+        console.log("[DEBUG]   details:", req.query.details);
+        console.log(
+          "[DEBUG]   Current detailedNetworkLogCache size:",
+          detailedNetworkLogCache.length
+        );
+        console.log(
+          "[DEBUG]   Cache content:",
+          JSON.stringify(detailedNetworkLogCache, null, 2)
+        ); // Log entire cache
+
+        const urlFilter = req.query.urlFilter as string;
+        const detailsQuery = req.query.details as string;
+
+        if (!urlFilter || !detailsQuery) {
+          res.status(400).send("Missing urlFilter or details query parameters");
+          return;
+        }
+
+        const details = detailsQuery.split(",");
+        const validDetails = [
+          "url",
+          "method",
+          "status",
+          "requestHeaders",
+          "responseHeaders",
+          "requestBody",
+          "responseBody",
+        ];
+
+        // Validate requested details
+        const invalidDetails = details.filter((d) => !validDetails.includes(d));
+        if (invalidDetails.length > 0) {
+          res.status(400).send(`Invalid details requested: ${invalidDetails.join(", ")}`);
+          return;
+        }
+
+        try {
+          console.log(`[DEBUG] Filtering logs with urlFilter: '${urlFilter}'`);
+          const filteredLogs = detailedNetworkLogCache.filter((log) =>
+            log.url.toLowerCase().includes(urlFilter.toLowerCase())
+          );
+
+          console.log(`[DEBUG] Filtered ${filteredLogs.length} logs matching urlFilter.`);
+
+          const results = filteredLogs.map((log) => {
+            const result: Partial<NetworkLogEntry> = {};
+            console.log(`[DEBUG] Processing filtered log:`, JSON.stringify(log, null, 2)); // Log each item being processed
+            details.forEach((detail) => {
+              if (detail in log) {
+                result[detail as keyof NetworkLogEntry] =
+                  log[detail as keyof NetworkLogEntry];
+              }
+            });
+            return result;
+          });
+
+          console.log(`[DEBUG] Sending results:`, JSON.stringify(results, null, 2));
+          res.json(results);
+        } catch (error) {
+          console.error("Error processing /network-request-details:", error);
+          res.status(500).send("Internal server error");
+        }
+      }
+    );
+
     this.app.get("/.identity", (req, res) => {
       res.json({
         signature: "mcp-browser-connector-24x7",

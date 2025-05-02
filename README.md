@@ -51,6 +51,140 @@ After that, it should work but if it doesn't let me know and I can share some mo
 
 If you have any questions or issues, feel free to open an issue ticket! And if you have any ideas to make this better, feel free to reach out or open an issue ticket with an enhancement tag or reach out to me at [@tedx_ai on x](https://x.com/tedx_ai)
 
+---
+
+### Running from Local Source Code
+
+If you have cloned this repository and want to run the servers directly from the source code (e.g., for development or testing local changes), follow these steps:
+
+**1. Install Dependencies (Run once in each directory):**
+
+*   In the `browser-tools-server` directory:
+    ```bash
+    cd browser-tools-server
+    npm install
+    cd ..
+    ```
+*   In the `browser-tools-mcp` directory (root of this project):
+    ```bash
+    # (Assuming you are in the root directory already)
+    npm install 
+    ```
+
+**2. Build and Start the Browser Connector Server:**
+
+*   Open a terminal window.
+*   Navigate to the server directory:
+    ```bash
+    cd browser-tools-server
+    ```
+*   Build the TypeScript code (only needed after code changes):
+    ```bash
+    npm run build
+    ```
+*   Start the server (keep this terminal running):
+    ```bash
+    node ./dist/browser-connector.js
+    ```
+   You should see output confirming the server is running on port 3025 (by default).
+
+**3. Start the MCP Server:**
+
+*   Open a *second* terminal window.
+*   Navigate to the MCP directory (root of this project):
+    ```bash
+    cd /path/to/browser-tools-mcp # Replace with your actual path
+    ```
+*   Start the MCP server (keep this terminal running):
+    ```bash
+    npx ts-node ./mcp-server.ts
+    ```
+   You should see output indicating that the MCP server has successfully discovered the browser connector server.
+
+**4. Connect the Chrome Extension:**
+
+*   Go to `chrome://extensions/` in your Chrome browser.
+*   Enable Developer Mode (toggle in the top-right corner).
+*   If installing for the first time:
+    - Click "Load unpacked"
+    - Navigate to the `chrome-extension` directory in this repository
+    - Select the directory
+*   If already installed, click the reload icon (🔄) to ensure it connects to the locally running servers.
+*   Open Chrome DevTools (F12 or right-click > Inspect) and navigate to the "Browser Tools MCP" panel.
+*   You should see "Connected to browser-tools-server" with the version and host information.
+
+**5. Configure your IDE (for Windsurf/Codeium/Cursor users):**
+
+*   If your IDE uses Windsurf for MCP integration, you may need to update the MCP configuration.
+*   For Codeium/Windsurf, the config is typically at `~/.codeium/windsurf-next/mcp_config.json`.
+*   Update the `browser-tools` section to point to your local MCP server:
+    ```json
+    "browser-tools": {
+      "command": "npx",
+      "args": [
+        "ts-node",
+        "/absolute/path/to/browser-tools-mcp/browser-tools-mcp/mcp-server.ts"
+      ],
+      "env": {},
+      "disabled": false
+    }
+    ```
+*   Restart your IDE or reload the MCP connections to apply the changes.
+
+### Network Request Details Functionality
+
+The Browser Tools MCP now includes a powerful feature to capture and query detailed network requests, including full request and response data.
+
+**1. Capturing Network Requests:**
+
+* The Chrome extension automatically captures all network requests made by the browser.
+* Full request and response data is stored, including headers, bodies, and status codes.
+
+**2. Querying Network Requests:**
+
+* Use the `getNetworkRequestDetails` MCP tool to query captured network requests.
+* Filter requests by URL substring and specify which details you want to retrieve.
+
+**Example Usage:**
+
+```javascript
+// Example of using the getNetworkRequestDetails tool
+// This retrieves the response body for any request containing "api/users"
+mcp0_getNetworkRequestDetails({
+  "urlFilter": "api/users",
+  "details": ["responseBody"]
+})
+```
+
+**Available Detail Fields:**
+
+* `url` - The full URL of the request
+* `method` - HTTP method (GET, POST, etc.)
+* `status` - HTTP status code
+* `requestHeaders` - Headers sent with the request
+* `responseHeaders` - Headers received in the response
+* `requestBody` - Body sent with the request (for POST, PUT, etc.)
+* `responseBody` - Body received in the response
+
+**Cache Limitations:**
+
+* **Size Limit:** The cache stores a maximum of 500 network requests. When this limit is reached, the oldest requests are removed first (FIFO - First In, First Out).
+* **Persistence:** The cache is stored in-memory and is cleared when:
+  * The browser connector server is restarted
+  * The browser page is refreshed or navigated
+  * The `wipe-logs` endpoint is called
+* **Content Size:** There is no explicit limit on the size of request/response bodies, but extremely large payloads may impact performance.
+
+**Troubleshooting:**
+
+* If no results are returned, ensure:
+  1. The network request has occurred since the browser connector server was started
+  2. The URL filter matches part of the request URL
+  3. The Chrome extension is properly connected to the server
+  4. The cache hasn't been cleared by a page refresh or server restart
+
+---
+
 ## Full Update Notes:
 
 Coding agents like Cursor can run these audits against the current page seamlessly. By leveraging Puppeteer and the Lighthouse npm library, BrowserTools MCP can now:

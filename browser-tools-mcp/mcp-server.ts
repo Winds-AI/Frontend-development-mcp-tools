@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import path from "path";
 import fs from "fs";
+import { z } from "zod";
 
 // Create the MCP server
 const server = new McpServer({
@@ -156,7 +157,6 @@ async function withServerConnection<T>(
               text: `Error after reconnection attempt: ${retryError.message}`,
             },
           ],
-          isError: true,
         };
       }
     } else {
@@ -168,7 +168,6 @@ async function withServerConnection<T>(
             text: `Failed to reconnect to server: ${error.message}`,
           },
         ],
-        isError: true,
       };
     }
   }
@@ -247,6 +246,74 @@ server.tool("getNetworkLogs", "Check ALL our network logs", async () => {
     };
   });
 });
+
+server.tool(
+  "getNetworkRequestDetails",
+  "Get specific details for network requests based on URL filter and requested fields.",
+  { // <--- START with a plain object brace {
+    urlFilter: z.string().describe("Substring or pattern to filter request URLs."),
+    details: z
+      .array(
+        z.enum([
+          "url",
+          "method",
+          "status",
+          "requestHeaders",
+          "responseHeaders",
+          "requestBody",
+          "responseBody",
+        ])
+      )
+      .min(1)
+      .describe("Specific details to retrieve for matching requests."),
+  },
+  async (params) => {
+    const { urlFilter, details } = params;
+
+    const queryString = `?urlFilter=${encodeURIComponent(
+      urlFilter
+    )}&details=${details.join(",")}`;
+    const targetUrl = `http://${discoveredHost}:${discoveredPort}/network-request-details${queryString}`;
+
+    console.log(`MCP Tool: Fetching network details from ${targetUrl}`);
+
+    return await withServerConnection(async () => {
+      try {
+        const response = await fetch(targetUrl);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `Server returned ${response.status}: ${errorText || response.statusText}`
+          );
+        }
+
+        const json = await response.json();
+
+        // Expecting an array of results from the server
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(json, null, 2),
+            },
+          ],
+        };
+      } catch (error: any) {
+        console.error("Error fetching network request details:", error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Failed to get network request details: ${error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    });
+  }
+);
 
 server.tool(
   "takeScreenshot",
@@ -807,11 +874,11 @@ server.tool("runNextJSAudit", {}, async () => ({
             },
             twitter: {
               card: "summary_large_image",
+              site: "@dminhvu02",
+              creator: "@dminhvu02",
               title: "Elastic Stack, Next.js, Python, JavaScript Tutorials | dminhvu",
               description:
                 "dminhvu.com - Programming blog for everyone to learn Elastic Stack, Next.js, Python, JavaScript, React, Machine Learning, Data Science, and more.",
-              creator: "@dminhvu02",
-              site: "@dminhvu02",
               images: [
                 {
                   url: "https://dminhvu.com/images/home/thumbnail.png",
