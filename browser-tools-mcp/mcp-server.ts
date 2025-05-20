@@ -248,8 +248,8 @@ server.tool(
 // });
 
 server.tool(
-  "getNetworkRequestDetails",
-  "Get detailed information about network requests with powerful filtering capabilities. This tool can be used for multiple purposes including: 1) Inspecting API calls by filtering specific endpoints, 2) Debugging network errors by retrieving status codes and error responses, 3) Analyzing request/response payloads, 4) Examining authentication headers, 5) Monitoring AJAX requests, 6) Tracking redirects, and 7) Investigating CORS issues. It supports filtering by URL patterns and only returns data matching your filter criteria. Timestamps are automatically included in results to help distinguish between identical API calls made at different times, without transferring unnecessary data. You can select specific data fields to retrieve (url, method, status, requestHeaders, responseHeaders, requestBody, responseBody) for targeted analysis.",
+  "analyzeApiCalls ",
+  "Analyze API interactions between frontend and backend by retrieving filtered network request details. Use this tool when you need to: 1) Inspect API calls to specific endpoints, 2) Debug network errors and status codes, 3) Examine request/response payloads, 4) Investigate authentication headers, or 5) Monitor AJAX requests. Filter by URL patterns and select which specific details to retrieve (url, method, status, headers, body). Results include timestamps to help distinguish between identical API calls made at different times.",
   { // <--- START with a plain object brace {
     urlFilter: z.string().describe("Substring or pattern to filter request URLs."),
     details: z
@@ -323,7 +323,7 @@ server.tool(
 
 server.tool(
   "takeScreenshot",
-  "Take a screenshot of the current browser tab",
+  "Take a screenshot of the current browser tab then analyze it to understand the current UI state",
   async () => {
     return await withServerConnection(async () => {
       try {
