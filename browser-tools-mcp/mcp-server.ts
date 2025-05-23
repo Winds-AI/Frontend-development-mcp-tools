@@ -173,44 +173,44 @@ async function withServerConnection<T>(
   }
 }
 
-// We'll define our tools that retrieve data from the browser connector
-server.tool("getConsoleLogs", "Check our browser logs", async () => {
-  return await withServerConnection(async () => {
-    const response = await fetch(
-      `http://${discoveredHost}:${discoveredPort}/console-logs`
-    );
-    const json = await response.json();
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(json, null, 2),
-        },
-      ],
-    };
-  });
-});
+// // We'll define our tools that retrieve data from the browser connector
+// server.tool("getConsoleLogs", "Check our browser logs", async () => {
+//   return await withServerConnection(async () => {
+//     const response = await fetch(
+//       `http://${discoveredHost}:${discoveredPort}/console-logs`
+//     );
+//     const json = await response.json();
+//     return {
+//       content: [
+//         {
+//           type: "text",
+//           text: JSON.stringify(json, null, 2),
+//         },
+//       ],
+//     };
+//   });
+// });
 
-server.tool(
-  "getConsoleErrors",
-  "Check our browsers console errors",
-  async () => {
-    return await withServerConnection(async () => {
-      const response = await fetch(
-        `http://${discoveredHost}:${discoveredPort}/console-errors`
-      );
-      const json = await response.json();
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(json, null, 2),
-          },
-        ],
-      };
-    });
-  }
-);
+// server.tool(
+//   "getConsoleErrors",
+//   "Check our browsers console errors",
+//   async () => {
+//     return await withServerConnection(async () => {
+//       const response = await fetch(
+//         `http://${discoveredHost}:${discoveredPort}/console-errors`
+//       );
+//       const json = await response.json();
+//       return {
+//         content: [
+//           {
+//             type: "text",
+//             text: JSON.stringify(json, null, 2),
+//           },
+//         ],
+//       };
+//     });
+//   }
+// );
 
 // server.tool("getNetworkErrors", "Check our network ERROR logs", async () => {
 //   return await withServerConnection(async () => {
@@ -248,7 +248,7 @@ server.tool(
 // });
 
 server.tool(
-  "analyzeApiCalls ",
+  "analyzeApiCalls",
   "Analyze API interactions between frontend and backend by retrieving filtered network request details. Use this tool when you need to: 1) Inspect API calls to specific endpoints, 2) Debug network errors and status codes, 3) Examine request/response payloads, 4) Investigate authentication headers, or 5) Monitor AJAX requests. Filter by URL patterns and select which specific details to retrieve (url, method, status, headers, body). Results include timestamps to help distinguish between identical API calls made at different times.",
   { // <--- START with a plain object brace {
     urlFilter: z.string().describe("Substring or pattern to filter request URLs."),
@@ -1496,6 +1496,222 @@ server.tool("wipeLogs", "Wipe all browser logs from memory", async () => {
 //     });
 //   }
 // );
+
+// Add this after existing tool definitions but before the IIFE at the end
+
+// Function to load Swagger documentation (either from URL or file)
+async function loadSwaggerDoc(swaggerSource: string): Promise<any> {
+  try {
+    // Check if it's a URL
+    if (swaggerSource.startsWith('http://') || swaggerSource.startsWith('https://')) {
+      const response = await fetch(swaggerSource);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch Swagger doc: ${response.status} ${response.statusText}`);
+      }
+      return await response.json();
+    }
+    
+    // Otherwise, try to parse it as a JSON string
+    try {
+      return JSON.parse(swaggerSource);
+    } catch {
+      // If not valid JSON, try to read it as a file path
+      const content = fs.readFileSync(swaggerSource, 'utf-8');
+      return JSON.parse(content);
+    }
+  } catch (error) {
+    console.error(`Error loading Swagger documentation: ${error}`);
+    throw error;
+  }
+}
+
+// Function to search for API endpoints matching the pattern
+function findMatchingEndpoints(swagger: any, apiPattern: string): any[] {
+  const matches: any[] = [];
+  const regex = new RegExp(apiPattern, 'i');
+  
+  // Handle OpenAPI v3
+  if (swagger.paths) {
+    for (const [path, pathItem] of Object.entries(swagger.paths)) {
+      for (const [method, operation] of Object.entries(pathItem as object)) {
+        if (method === 'parameters') continue; // Skip path parameters
+
+        const op = operation as any;
+        const fullPath = path;
+        const operationId = op.operationId || `${method} ${path}`;
+        
+        // Check if path or operationId matches the pattern
+        if (regex.test(path) || regex.test(operationId)) {
+          matches.push({
+            path: fullPath,
+            method: method.toUpperCase(),
+            operationId,
+            summary: op.summary || '',
+            description: op.description || '',
+            parameters: op.parameters || [],
+            requestBody: op.requestBody || null,
+            responses: op.responses || {},
+            servers: op.servers || swagger.servers || []
+          });
+        }
+      }
+    }
+  }
+  
+  // Handle Swagger v2
+  if (swagger.swagger && swagger.swagger.startsWith('2.') && swagger.paths) {
+    for (const [path, pathItem] of Object.entries(swagger.paths)) {
+      for (const [method, operation] of Object.entries(pathItem as object)) {
+        if (method === 'parameters') continue;
+
+        const op = operation as any;
+        const fullPath = path;
+        const operationId = op.operationId || `${method} ${path}`;
+        
+        if (regex.test(path) || regex.test(operationId)) {
+          matches.push({
+            path: fullPath,
+            method: method.toUpperCase(),
+            operationId,
+            summary: op.summary || '',
+            description: op.description || '',
+            parameters: op.parameters || [],
+            consumes: op.consumes || swagger.consumes || [],
+            responses: op.responses || {},
+            schemes: op.schemes || swagger.schemes || [],
+            host: swagger.host,
+            basePath: swagger.basePath || ''
+          });
+        }
+      }
+    }
+  }
+  
+  return matches;
+}
+
+// Add the searchApiDocs tool definition
+server.tool(
+  "searchApiDocs",
+  "Search API documentation to understand endpoints, parameters, and responses. Provide a pattern to match against API paths or operationIds to find specific endpoints. Use this tool when you need to understand how to construct proper API requests with the correct parameters for pagination, filtering, or other operations as defined in the Swagger/OpenAPI documentation.",
+  {
+    swaggerSource: z.string().describe("URL to a Swagger/OpenAPI specification, a file path, or a JSON string containing the Swagger/OpenAPI spec. Defaults to the value of SWAGGER_URL environment variable if not provided."),
+    apiPattern: z.string().describe("Regex pattern to match against API paths or operationIds"),
+    includeSchemas: z.boolean().optional().default(true).describe("Whether to include full schema definitions in the response"),
+  },
+  async (params) => {
+    try {
+      const { swaggerSource = process.env.SWAGGER_URL, apiPattern, includeSchemas } = params;
+      
+      if (!swaggerSource) {
+        throw new Error("No Swagger source provided and SWAGGER_URL environment variable is not set");
+      }
+      
+      console.log(`Searching for API endpoints matching pattern: ${apiPattern}`);
+      
+      // Load the Swagger documentation
+      const swaggerDoc = await loadSwaggerDoc(swaggerSource);
+      
+      // Find matching endpoints
+      const matchingEndpoints = findMatchingEndpoints(swaggerDoc, apiPattern);
+      
+      // If includeSchemas is true, include relevant schema definitions
+      if (includeSchemas && matchingEndpoints.length > 0) {
+        // Add schemas from components (OpenAPI v3) or definitions (Swagger v2)
+        const schemas = swaggerDoc.components?.schemas || swaggerDoc.definitions || {};
+        
+        // Add schemas to the response
+        matchingEndpoints.forEach(endpoint => {
+          endpoint.schemas = {};
+          
+          // Extract schema references from parameters
+          if (endpoint.parameters) {
+            endpoint.parameters.forEach((param: any) => {
+              if (param.schema && param.schema.$ref) {
+                const schemaName = param.schema.$ref.split('/').pop();
+                if (schemas[schemaName]) {
+                  endpoint.schemas[schemaName] = schemas[schemaName];
+                }
+              }
+            });
+          }
+          
+          // Extract schema references from requestBody (OpenAPI v3)
+          if (endpoint.requestBody && endpoint.requestBody.content) {
+            for (const contentType in endpoint.requestBody.content) {
+              const content = endpoint.requestBody.content[contentType];
+              if (content.schema && content.schema.$ref) {
+                const schemaName = content.schema.$ref.split('/').pop();
+                if (schemas[schemaName]) {
+                  endpoint.schemas[schemaName] = schemas[schemaName];
+                }
+              }
+            }
+          }
+          
+          // Extract schema references from responses
+          if (endpoint.responses) {
+            for (const statusCode in endpoint.responses) {
+              const response = endpoint.responses[statusCode];
+              // OpenAPI v3
+              if (response.content) {
+                for (const contentType in response.content) {
+                  const content = response.content[contentType];
+                  if (content.schema && content.schema.$ref) {
+                    const schemaName = content.schema.$ref.split('/').pop();
+                    if (schemas[schemaName]) {
+                      endpoint.schemas[schemaName] = schemas[schemaName];
+                    }
+                  }
+                }
+              }
+              // Swagger v2
+              else if (response.schema && response.schema.$ref) {
+                const schemaName = response.schema.$ref.split('/').pop();
+                if (schemas[schemaName]) {
+                  endpoint.schemas[schemaName] = schemas[schemaName];
+                }
+              }
+            }
+          }
+        });
+      }
+      
+      if (matchingEndpoints.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `No API endpoints found matching pattern: ${apiPattern}`,
+            },
+          ],
+        };
+      }
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(matchingEndpoints, null, 2),
+          },
+        ],
+      };
+    } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`Error in searchApiDocs tool: ${errorMessage}`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Failed to search API documentation: ${errorMessage}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
 
 // Start receiving messages on stdio
 (async () => {
