@@ -3,6 +3,7 @@
   "version": "1.2.0",
   "description": "MCP (Model Context Protocol) server for browser tools integration",
   "main": "dist/mcp-server.js",
+  "type": "module",
   "bin": {
     "browser-tools-mcp": "dist/mcp-server.js"
   },
@@ -27,10 +28,14 @@
   "author": "AgentDesk AI",
   "license": "MIT",
   "dependencies": {
+    "@llamaindex/google": "^0.3.4",
+    "@llamaindex/qdrant": "^0.1.16",
     "@modelcontextprotocol/sdk": "^1.4.1",
+    "@qdrant/qdrant-js": "^1.14.1",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "express": "^4.21.2",
+    "llamaindex": "^0.11.3",
     "llm-cost": "^1.0.5",
     "node-fetch": "^2.7.0",
     "ws": "^8.18.1"
@@ -41,6 +46,7 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.13.1",
     "@types/node-fetch": "^2.6.11",
+    "@types/uuid": "^10.0.0",
     "@types/ws": "^8.5.14",
     "typescript": "^5.7.3"
   }

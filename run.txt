@@ -1,0 +1,3 @@
+cd browser-tools-server
+npm run build
+node ./dist/browser-connector.js

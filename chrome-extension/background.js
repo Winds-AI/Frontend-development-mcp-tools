@@ -420,6 +420,7 @@ function captureAndSendScreenshot(message, settings, sendResponse) {
             body: JSON.stringify({
               data: dataUrl,
               path: message.screenshotPath,
+              url: tab.url // Added tab.url for filename generation
             }),
           })
             .then((response) => response.json())

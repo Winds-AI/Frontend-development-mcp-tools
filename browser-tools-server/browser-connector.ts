@@ -793,7 +793,7 @@ export class BrowserConnector {
         console.log("Browser Connector: Request body:", req.body);
         try {
           console.log("Received screenshot capture request");
-          const { data, path: outputPath } = req.body;
+          const { data, path: outputPath, url } = req.body; // Added url
 
           if (!data) {
             console.log("Screenshot request missing data");
@@ -812,9 +812,26 @@ export class BrowserConnector {
           fs.mkdirSync(targetPath, { recursive: true });
           console.log(`Created/verified directory: ${targetPath}`);
 
-          // Generate a unique filename using timestamp
-          const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-          const filename = `screenshot-${timestamp}.png`;
+          // Generate filename from URL or fallback to timestamp
+          let filename;
+          if (url && typeof url === 'string' && url.trim() !== '') {
+            let sanitizedUrl = url.replace(/^https?:\/\//, ''); // Remove http(s)://
+            sanitizedUrl = sanitizedUrl.replace(/[\/\\?%*:|"<>\s#&+=]/g, '_'); // Replace special chars with _
+            sanitizedUrl = sanitizedUrl.replace(/__+/g, '_'); // Replace multiple underscores
+            sanitizedUrl = sanitizedUrl.replace(/^_+|_+$/g, ''); // Trim leading/trailing underscores
+            if (sanitizedUrl.length > 100) { // Limit length
+              sanitizedUrl = sanitizedUrl.substring(0, 100);
+            }
+            if (sanitizedUrl === '') { // Fallback if URL becomes empty after sanitization
+              const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+              filename = `screenshot-${timestamp}.png`;
+            } else {
+              filename = `${sanitizedUrl}.png`;
+            }
+          } else {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+            filename = `screenshot-no-url-${timestamp}.png`;
+          }
           const fullPath = path.join(targetPath, filename);
           console.log(`Saving screenshot to: ${fullPath}`);
 
