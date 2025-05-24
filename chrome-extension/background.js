@@ -1,5 +1,11 @@
 // Listen for messages from the devtools panel
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Handle auth token retrieval
+  if (message.type === "RETRIEVE_AUTH_TOKEN") {
+    retrieveAuthToken(message, sender, sendResponse);
+    return true; // Required to use sendResponse asynchronously
+  }
+  
   if (message.type === "GET_CURRENT_URL" && message.tabId) {
     getCurrentTabUrl(message.tabId)
       .then((url) => {
@@ -357,6 +363,66 @@ async function retestConnectionOnRefresh(tabId) {
       console.log("Connection test successful after page refresh");
     }
   });
+}
+
+// Function to retrieve auth token from a tab
+async function retrieveAuthToken(request, sender, sendResponse) {
+  const { origin, storageType, tokenKey } = request;
+  
+  try {
+    let authToken = null;
+    
+    // Find a tab that matches the requested origin
+    const tabs = await chrome.tabs.query({ url: `${origin}/*` });
+    
+    if (tabs.length === 0) {
+      sendResponse({ error: `No tabs found for origin: ${origin}` });
+      return;
+    }
+    
+    const tabId = tabs[0].id;
+    
+    if (storageType === 'cookie') {
+      // Get all cookies for the origin
+      const cookies = await chrome.cookies.getAll({ url: origin });
+      const authCookie = cookies.find(cookie => cookie.name === tokenKey);
+      
+      if (authCookie) {
+        authToken = authCookie.value;
+      }
+    } else if (storageType === 'localStorage') {
+      // Execute script in the tab to access localStorage
+      const result = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: (key) => window.localStorage.getItem(key),
+        args: [tokenKey]
+      });
+      
+      if (result && result[0] && result[0].result) {
+        authToken = result[0].result;
+      }
+    } else if (storageType === 'sessionStorage') {
+      // Execute script in the tab to access sessionStorage
+      const result = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: (key) => window.sessionStorage.getItem(key),
+        args: [tokenKey]
+      });
+      
+      if (result && result[0] && result[0].result) {
+        authToken = result[0].result;
+      }
+    }
+    
+    if (authToken) {
+      sendResponse({ token: authToken });
+    } else {
+      sendResponse({ error: `Token with key '${tokenKey}' not found in ${storageType}` });
+    }
+  } catch (error) {
+    console.error("Error retrieving auth token:", error);
+    sendResponse({ error: `Error retrieving auth token: ${error.message}` });
+  }
 }
 
 // Function to capture and send screenshot

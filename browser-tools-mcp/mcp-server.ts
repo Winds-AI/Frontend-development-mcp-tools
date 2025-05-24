@@ -341,6 +341,73 @@ server.tool(
   }
 );
 
+server.tool(
+  "getAuthToken",
+  "Retrieves authentication token from a specified origin (e.g., localhost:5173) either from cookies, localStorage, or sessionStorage. This helps when making authenticated API requests.",
+  {
+    origin: z.string().describe("The origin URL (e.g., http://localhost:5173) to retrieve the token from."),
+    storageType: z.enum(["cookie", "localStorage", "sessionStorage"]).describe("Where to look for the token: in cookies, localStorage, or sessionStorage."),
+    tokenKey: z.string().describe("The name of the cookie or the localStorage/sessionStorage key that contains the auth token.")
+  },
+  async (params) => {
+    return await withServerConnection(async () => {
+      try {
+        const response = await fetch(
+          `http://${discoveredHost}:${discoveredPort}/get-auth-token`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              origin: params.origin,
+              storageType: params.storageType,
+              tokenKey: params.tokenKey
+            })
+          }
+        );
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Failed to retrieve auth token: ${result.error || "Unknown error"}`
+              }
+            ],
+            isError: true
+          };
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Authentication token retrieved successfully from ${params.storageType}:`
+            },
+            {
+              type: "text",
+              text: result.token
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error retrieving auth token: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ],
+          isError: true
+        };
+      }
+    });
+  }
+);
+
 // Add imageToBase64 tool: convert image file to Base64 string
 server.tool(
   "analyzeImageFile",
