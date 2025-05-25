@@ -526,7 +526,7 @@ server.tool(
     documentPath: z.string().describe("Path to the FRD document file (txt, md, csv, pdf)."),
     projectRoot: z.string().optional().describe("Optional override for project root; defaults to PROJECT_ROOT env or one level up from MCP server."),
     collectionName: z.string().optional().default("frd_documents").describe("Qdrant collection name (default: frd_documents)."),
-    qdrantUrl: z.string().optional().default("https://48491bdd-da80-400f-92a4-acfd89368ebc.eu-central-1-0.aws.cloud.qdrant.io").describe("Qdrant server URL (default: your Qdrant Cloud cluster)."),
+    qdrantUrl: z.string().optional().default(process.env.QDRANT_URL || "http://localhost:6333").describe("Qdrant server URL (default: local Qdrant instance on port 6333, override with QDRANT_URL env var)."),
     qdrantApiKey: z.string().optional().describe("Qdrant API Key (optional, will try to use QDRANT_API_KEY env var if not provided)."),
     vectorSize: z.number().optional().default(768).describe("Vector size for embeddings (default: 768 for Gemini text-embedding-004).")
   },
