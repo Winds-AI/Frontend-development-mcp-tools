@@ -26,6 +26,10 @@ Now, the chunks of the FRD document will be smaller than we normally use, and I 
 
 *This also requires a lot of credits and an API key to create the agent, so I have to postpone this also.*
 
+## Giving LLM Component and UI context
+
+Till now, I have focused on API integration and to work you have to have components setup to get the exact code and UI you want to get But the Reality is that we don't want that, we want our code to be based on our rules and components so that we can debug it anytime and make chnages even if we are not using LLM. If we give all that control to LLM then the output will be un-deterministic. For this, I think we need to make something like a directory of components accessible to the LLM, like how shadcn uses it's npx commnads to sever this network of components. What if we make an MCP tool that has list of all the components and their configurable parameters like custom styles, props, etc. and then we can call this tool for the component and then it will return that data. so it would be better if all components library like MUI, antd, chakra, etc. have their own MCP tool that can do this. For now, I will try to make this tool by myself, let's see how this goes. Also to get accurate UI we need to maintain this information of whcih type of component are we using for which type of work. At the end it all comes down to memory efficiency and effectiveness
+
 ---
 
 I believe these future enhancements will significantly improve the capabilities of AI-assisted frontend development.
