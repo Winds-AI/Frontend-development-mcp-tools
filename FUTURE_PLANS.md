@@ -1,3 +1,13 @@
+If you are interested in the future of this project, please go to https://windsurf.canny.io/feature-requests, search for these requests, and upvote them.
+
+Feature Requests:
+- Show memories retrieved based on prompt
+- Switch the tool flow from predefined tools to code execution tool
+- Add custom model selection for tool call
+- Please add a analyze image toolcall
+- Prompt field is resetted
+- Add a wait time tool call that has a check button to continue when I see fit
+
 # Future Plans for Frontend Development Tools MCP Extension
 
 This document outlines the future direction and planned enhancements for the Frontend Development Tools MCP Extension. The goal is to further empower AI coding assistants by providing them with richer context and more intuitive tools, ultimately leading to more autonomous and efficient frontend development.
