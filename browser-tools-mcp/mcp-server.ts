@@ -816,18 +816,18 @@ function findMatchingEndpoints(swagger: any, apiPattern: string): any[] {
 // Add the searchApiDocs tool definition
 server.tool(
   "searchApiDocs",
-  "Search API documentation to understand endpoints, parameters, and responses. Provide a pattern to match against API paths or operationIds to find specific endpoints. Use this tool when you need to understand how to construct proper API requests with the correct parameters for pagination, filtering, or other operations as defined in the Swagger/OpenAPI documentation.",
+  "Search API documentation to understand endpoints, parameters, and responses. Provide a pattern to match against API paths or operationIds to find specific endpoints. Use this tool when you need to understand how to construct proper API requests with the correct parameters for pagination, filtering, or other operations as defined in the Swagger/OpenAPI documentation. The tool uses the SWAGGER_URL environment variable to locate the API documentation.",
   {
-    swaggerSource: z.string().describe("URL to a Swagger/OpenAPI specification, a file path, or a JSON string containing the Swagger/OpenAPI spec. Defaults to the value of SWAGGER_URL environment variable if not provided."),
     apiPattern: z.string().describe("Regex pattern to match against API paths or operationIds"),
     includeSchemas: z.boolean().optional().default(true).describe("Whether to include full schema definitions in the response"),
   },
   async (params) => {
     try {
-      const { swaggerSource = process.env.SWAGGER_URL, apiPattern, includeSchemas } = params;
+      const { apiPattern, includeSchemas } = params;
+      const swaggerSource = process.env.SWAGGER_URL;
       
       if (!swaggerSource) {
-        throw new Error("No Swagger source provided and SWAGGER_URL environment variable is not set");
+        throw new Error("SWAGGER_URL environment variable is not set");
       }
       
       console.log(`Searching for API endpoints matching pattern: ${apiPattern}`);
