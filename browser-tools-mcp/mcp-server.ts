@@ -342,32 +342,46 @@ server.tool(
 );
 
 server.tool(
-  "getAuthToken",
+  "getAccessToken",
   "Retrieves authentication token from a specified origin (e.g., localhost:5173) either from cookies, localStorage, or sessionStorage. This helps when making authenticated API requests.",
   {
     origin: z.string().describe("The origin URL (e.g., http://localhost:5173) to retrieve the token from."),
     storageType: z.enum(["cookie", "localStorage", "sessionStorage"]).describe("Where to look for the token: in cookies, localStorage, or sessionStorage."),
     tokenKey: z.string().describe("The name of the cookie or the localStorage/sessionStorage key that contains the auth token.")
-  },
-  async (params) => {
+  },  async (params) => {
     return await withServerConnection(async () => {
       try {
-        const response = await fetch(
-          `http://${discoveredHost}:${discoveredPort}/get-auth-token`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              origin: params.origin,
-              storageType: params.storageType,
-              tokenKey: params.tokenKey
-            })
-          }
-        );
+        const targetUrl = `http://${discoveredHost}:${discoveredPort}/get-auth-token`;
+        const requestBody = {
+          origin: params.origin,
+          storageType: params.storageType,
+          tokenKey: params.tokenKey
+        };
+        
+        console.error(`[DEBUG] getAccessToken - Target URL: ${targetUrl}`);
+        console.error(`[DEBUG] getAccessToken - Request body: ${JSON.stringify(requestBody)}`);
+        console.error(`[DEBUG] getAccessToken - Discovered host: ${discoveredHost}, port: ${discoveredPort}`);
+        
+        const response = await fetch(targetUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(requestBody)        });
 
-        const result = await response.json();
+        console.error(`[DEBUG] getAccessToken - Response status: ${response.status}`);
+        console.error(`[DEBUG] getAccessToken - Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
+        
+        const responseText = await response.text();
+        console.error(`[DEBUG] getAccessToken - Raw response: ${responseText.substring(0, 200)}...`);
+        
+        let result;
+        try {
+          result = JSON.parse(responseText);
+        } catch (parseError: any) {
+          console.error(`[DEBUG] getAccessToken - JSON parse error: ${parseError.message}`);
+          throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}...`);
+        }
         
         if (!response.ok) {
           return {

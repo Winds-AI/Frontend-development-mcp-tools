@@ -1091,9 +1091,56 @@ async function setupWebSocket() {
                 }
               }
             );
-          };
+          };          requestCurrentUrl();
+        } else if (message.type === "RETRIEVE_AUTH_TOKEN") {
+          console.log("Chrome Extension: Received auth token retrieval request:", message);
+          
+          // Forward the request to the background script
+          chrome.runtime.sendMessage(
+            {
+              type: "RETRIEVE_AUTH_TOKEN",
+              origin: message.origin,
+              storageType: message.storageType,
+              tokenKey: message.tokenKey
+            },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                console.error(
+                  "Chrome Extension: Error getting auth token from background:",
+                  chrome.runtime.lastError
+                );
+                
+                // Send error response back to server
+                ws.send(
+                  JSON.stringify({
+                    type: "RETRIEVE_AUTH_TOKEN_RESPONSE",
+                    error: "Failed to communicate with background script: " + chrome.runtime.lastError.message
+                  })
+                );
+                return;
+              }
 
-          requestCurrentUrl();
+              if (response && response.token) {
+                console.log("Chrome Extension: Auth token retrieved successfully");
+                // Send success response back to server
+                ws.send(
+                  JSON.stringify({
+                    type: "RETRIEVE_AUTH_TOKEN_RESPONSE",
+                    token: response.token
+                  })
+                );
+              } else {
+                console.log("Chrome Extension: Auth token retrieval failed:", response?.error);
+                // Send error response back to server
+                ws.send(
+                  JSON.stringify({
+                    type: "RETRIEVE_AUTH_TOKEN_RESPONSE",
+                    error: response?.error || "Unknown error retrieving auth token"
+                  })
+                );
+              }
+            }
+          );
         }
       } catch (error) {
         console.error(

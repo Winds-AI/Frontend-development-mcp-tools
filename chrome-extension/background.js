@@ -371,56 +371,108 @@ async function retrieveAuthToken(request, sender, sendResponse) {
   
   try {
     let authToken = null;
+    console.log('Retrieving auth token:', { origin, storageType, tokenKey });
     
     // Find a tab that matches the requested origin
-    const tabs = await chrome.tabs.query({ url: `${origin}/*` });
+    // Make the pattern match more flexible by supporting both http and https
+    const urlPattern = origin.startsWith('http') ? `${origin}/*` : `*://${origin}/*`;
+    console.log('Looking for tabs matching pattern:', urlPattern);
+    
+    const tabs = await chrome.tabs.query({ url: urlPattern });
+    console.log('Found tabs:', tabs);
     
     if (tabs.length === 0) {
+      console.log('No matching tabs found');
       sendResponse({ error: `No tabs found for origin: ${origin}` });
       return;
     }
     
     const tabId = tabs[0].id;
+    console.log('Found matching tab:', tabId);
     
     if (storageType === 'cookie') {
-      // Get all cookies for the origin
-      const cookies = await chrome.cookies.getAll({ url: origin });
+      console.log('Reading cookies...');
+      // Try both HTTP and HTTPS
+      const protocols = origin.startsWith('http') ? [origin] : [`https://${origin}`, `http://${origin}`];
+      let cookies = [];
+      
+      for (const url of protocols) {
+        console.log(`Trying to get cookies for ${url}`);
+        const protocolCookies = await chrome.cookies.getAll({ url });
+        cookies = cookies.concat(protocolCookies);
+      }
+      
+      console.log(`Found ${cookies.length} total cookies`);
+      console.log('Available cookies:', cookies.map(c => c.name));
+      
       const authCookie = cookies.find(cookie => cookie.name === tokenKey);
+      console.log('Auth cookie found:', authCookie);
       
       if (authCookie) {
         authToken = authCookie.value;
       }
-    } else if (storageType === 'localStorage') {
-      // Execute script in the tab to access localStorage
-      const result = await chrome.scripting.executeScript({
-        target: { tabId },
-        func: (key) => window.localStorage.getItem(key),
-        args: [tokenKey]
-      });
-      
-      if (result && result[0] && result[0].result) {
-        authToken = result[0].result;
-      }
-    } else if (storageType === 'sessionStorage') {
-      // Execute script in the tab to access sessionStorage
-      const result = await chrome.scripting.executeScript({
-        target: { tabId },
-        func: (key) => window.sessionStorage.getItem(key),
-        args: [tokenKey]
-      });
-      
-      if (result && result[0] && result[0].result) {
-        authToken = result[0].result;
+    } else if (storageType === 'localStorage' || storageType === 'sessionStorage') {
+      console.log(`Reading from ${storageType}...`);
+      try {
+        const storage = storageType === 'localStorage' ? 'localStorage' : 'sessionStorage';
+        const result = await chrome.scripting.executeScript({
+          target: { tabId, allFrames: false },
+          func: (key, storageType) => {
+            try {
+              console.log(`Accessing ${storageType}`);
+              const storage = window[storageType];
+              console.log('Storage access successful');
+              
+              const value = storage.getItem(key);
+              console.log(`Value for key "${key}":`, value);
+              
+              // Get all available keys for debugging
+              const allKeys = Object.keys(storage);
+              console.log(`Available keys in ${storageType}:`, allKeys);
+              
+              return { success: true, value, availableKeys: allKeys };
+            } catch (error) {
+              console.error(`Error accessing ${storageType}:`, error);
+              return { success: false, error: error.message };
+            }
+          },
+          args: [tokenKey, storage]
+        });
+        
+        console.log('Script execution result:', result);
+        
+        if (result && result[0]) {
+          const { success, value, error, availableKeys } = result[0].result;
+          if (success) {
+            authToken = value;
+            console.log(`Available keys in ${storageType}:`, availableKeys);
+            if (value) {
+              console.log('Token found in storage');
+            } else {
+              console.log('Token not found in storage');
+            }
+          } else if (error) {
+            console.error('Error accessing storage:', error);
+            sendResponse({ error: `Error accessing ${storageType}: ${error}` });
+            return;
+          }
+        }
+      } catch (scriptError) {
+        console.error('Script execution error:', scriptError);
+        sendResponse({ error: `Failed to execute script in tab: ${scriptError.message}` });
+        return;
       }
     }
     
     if (authToken) {
+      console.log('Token retrieved successfully:', authToken);
       sendResponse({ token: authToken });
     } else {
+      console.log('Token not found');
       sendResponse({ error: `Token with key '${tokenKey}' not found in ${storageType}` });
     }
   } catch (error) {
-    console.error("Error retrieving auth token:", error);
+    console.error('Error retrieving auth token:', error);
     sendResponse({ error: `Error retrieving auth token: ${error.message}` });
   }
 }
