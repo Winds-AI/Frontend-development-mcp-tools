@@ -350,8 +350,7 @@ server.tool(
     tokenKey: z.string().describe("The name of the cookie or the localStorage/sessionStorage key that contains the auth token.")
   },  async (params) => {
     return await withServerConnection(async () => {
-      try {
-        const targetUrl = `http://${discoveredHost}:${discoveredPort}/get-auth-token`;
+      try {        const targetUrl = `http://${discoveredHost}:${discoveredPort}/auth-token-proxy`;
         const requestBody = {
           origin: params.origin,
           storageType: params.storageType,
@@ -367,21 +366,10 @@ server.tool(
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify(requestBody)        });
+          body: JSON.stringify(requestBody)
+        });
 
-        console.error(`[DEBUG] getAccessToken - Response status: ${response.status}`);
-        console.error(`[DEBUG] getAccessToken - Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
-        
-        const responseText = await response.text();
-        console.error(`[DEBUG] getAccessToken - Raw response: ${responseText.substring(0, 200)}...`);
-        
-        let result;
-        try {
-          result = JSON.parse(responseText);
-        } catch (parseError: any) {
-          console.error(`[DEBUG] getAccessToken - JSON parse error: ${parseError.message}`);
-          throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}...`);
-        }
+        const result = await response.json();
         
         if (!response.ok) {
           return {
