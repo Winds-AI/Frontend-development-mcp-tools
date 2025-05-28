@@ -25,7 +25,8 @@ git clone https://github.com/Winds-AI/Browser-MCP.git
 1. Open Chrome and navigate to `chrome://extensions/`
 2. Toggle "Developer mode" on (located at the top-right corner)
 3. Click on "Load Unpacked" (located at the top-left corner)
-4. Select the `chrome-extension` directory from the cloned repository
+4. make sure you install all dependencis in chrome-extension first
+5. Select the `chrome-extension` directory from the cloned repository
 
 ### 3. Set Up MCP Server
 

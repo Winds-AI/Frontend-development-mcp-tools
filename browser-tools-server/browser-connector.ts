@@ -658,6 +658,14 @@ export class BrowserConnector {
       }
     );
 
+    // Add auth token proxy endpoint
+    this.app.post(
+      "/auth-token-proxy",
+      async (req: express.Request, res: express.Response): Promise<void> => {
+        await this.authTokenProxy(req, res);
+      }
+    );
+
     // Set up accessibility audit endpoint
     this.setupAccessibilityAudit();
 
@@ -694,6 +702,15 @@ export class BrowserConnector {
             ...data,
             data: data.data ? "[base64 data]" : undefined,
           });
+
+          // Handle auth token retrieval request
+          if (data.type === "RETRIEVE_AUTH_TOKEN") {
+            console.log("Received auth token retrieval request via WebSocket");
+            
+            // The request will be handled by the Chrome extension background script
+            // which should respond with RETRIEVE_AUTH_TOKEN_RESPONSE
+            // We don't need to do anything here except wait for the response
+          }
 
           // Handle URL response
           if (data.type === "current-url-response" && data.url) {
@@ -845,96 +862,6 @@ export class BrowserConnector {
           });
         } catch (error: unknown) {
           console.error("Error saving screenshot:", error);
-          if (error instanceof Error) {
-            res.status(500).json({ error: error.message });
-          } else {
-            res.status(500).json({ error: "An unknown error occurred" });
-          }
-        }
-      }
-    );
-
-    // Add auth token retrieval endpoint
-    this.app.post(
-      "/get-auth-token",
-      async (req: express.Request, res: express.Response): Promise<void> => {
-        console.log("Browser Connector: Received request to /get-auth-token endpoint");
-        console.log("Browser Connector: Request body:", req.body);
-        
-        const { origin, storageType, tokenKey } = req.body;
-        
-        if (!origin || !storageType || !tokenKey) {
-          res.status(400).json({ 
-            error: "Missing required parameters. Please provide origin, storageType, and tokenKey." 
-          });
-          return;
-        }
-        
-        if (!['cookie', 'localStorage', 'sessionStorage'].includes(storageType)) {
-          res.status(400).json({
-            error: "Invalid storageType. Must be 'cookie', 'localStorage', or 'sessionStorage'."
-          });
-          return;
-        }
-        
-        try {
-          if (!this.activeConnection) {
-            res.status(503).json({ error: "No active browser connection available" });
-            return;
-          }
-          
-          // Send message to the extension
-          this.activeConnection.send(JSON.stringify({
-            type: "RETRIEVE_AUTH_TOKEN",
-            origin,
-            storageType,
-            tokenKey
-          }));
-          
-          // Create a promise that will be resolved when we get a response from the extension
-          const responsePromise = new Promise<any>((resolve, reject) => {
-            const messageHandler = (event: WebSocket.MessageEvent) => {
-              try {
-                const message = JSON.parse(event.data.toString());
-                
-                if (message.type === "RETRIEVE_AUTH_TOKEN_RESPONSE") {
-                  // Remove this listener once we get a response
-                  this.activeConnection?.removeEventListener('message', messageHandler);
-                  
-                  if (message.error) {
-                    reject(new Error(message.error));
-                  } else {
-                    resolve(message);
-                  }
-                }
-              } catch (error) {
-                // Ignore parsing errors for other messages
-              }
-            };
-            
-            // Add the message handler
-            this.activeConnection?.addEventListener('message', messageHandler);
-            
-            // Set a timeout to reject the promise if no response is received
-            setTimeout(() => {
-              this.activeConnection?.removeEventListener('message', messageHandler);
-              reject(new Error("Timeout waiting for response from browser extension"));
-            }, 10000); // 10 second timeout
-          });
-          
-          try {
-            const response = await responsePromise;
-            res.json({ token: response.token });
-          } catch (error) {
-            console.error("Error retrieving auth token:", error);
-            if (error instanceof Error) {
-              res.status(500).json({ error: error.message });
-            } else {
-              res.status(500).json({ error: "An unknown error occurred" });
-            }
-          }
-        } catch (error: unknown) {
-          console.error("Error processing auth token request:", error);
           if (error instanceof Error) {
             res.status(500).json({ error: error.message });
           } else {
@@ -1390,6 +1317,85 @@ export class BrowserConnector {
       res.status(500).json({
         error: errorMessage,
       });
+    }
+  }
+
+  // Add auth token proxy endpoint
+  async authTokenProxy(req: express.Request, res: express.Response): Promise<void> {
+    console.log("Browser Connector: Received auth token proxy request");
+    console.log("Browser Connector: Request body:", req.body);
+    
+    const { origin, storageType, tokenKey } = req.body;
+    
+    if (!origin || !storageType || !tokenKey) {
+      res.status(400).json({ 
+        error: "Missing required parameters. Please provide origin, storageType, and tokenKey." 
+      });
+      return;
+    }
+    
+    if (!['cookie', 'localStorage', 'sessionStorage'].includes(storageType)) {
+      res.status(400).json({
+        error: "Invalid storageType. Must be 'cookie', 'localStorage', or 'sessionStorage'."
+      });
+      return;
+    }
+    
+    try {
+      if (!this.activeConnection) {
+        res.status(503).json({ error: "No active browser connection available" });
+        return;
+      }
+      
+      // Send message to the extension using Chrome extension messaging
+      const messagePromise = new Promise<any>((resolve, reject) => {
+        // Set up a one-time message handler for auth token response
+        const messageHandler = (message: string | Buffer | ArrayBuffer | Buffer[]) => {
+          try {
+            const data = JSON.parse(message.toString());
+            
+            if (data.type === "RETRIEVE_AUTH_TOKEN_RESPONSE") {
+              // Remove this listener once we get a response
+              this.activeConnection?.removeListener('message', messageHandler);
+              
+              if (data.error) {
+                reject(new Error(data.error));
+              } else {
+                resolve(data);
+              }
+            }
+          } catch (error) {
+            // Ignore parsing errors for other messages
+          }
+        };
+        
+        // Add the message handler
+        this.activeConnection?.on('message', messageHandler);
+        
+        // Send the request to Chrome extension via WebSocket
+        this.activeConnection?.send(JSON.stringify({
+          type: "RETRIEVE_AUTH_TOKEN",
+          origin,
+          storageType,
+          tokenKey
+        }));
+        
+        // Set a timeout to reject the promise if no response is received
+        setTimeout(() => {
+          this.activeConnection?.removeListener('message', messageHandler);
+          reject(new Error("Timeout waiting for response from browser extension"));
+        }, 10000); // 10 second timeout
+      });
+      
+      const response = await messagePromise;
+      res.json({ token: response.token });
+    } catch (error) {
+      console.error("Error retrieving auth token:", error);
+      if (error instanceof Error) {
+        res.status(500).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: "An unknown error occurred" });
+      }
     }
   }
 
