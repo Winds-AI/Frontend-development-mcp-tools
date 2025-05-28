@@ -342,7 +342,7 @@ server.tool(
 );
 
 server.tool(
-  "getAuthToken",
+  "getAccessToken",
   "Retrieves authentication token from a specified origin (e.g., localhost:5173) either from cookies, localStorage, or sessionStorage. This helps when making authenticated API requests.",
   {
     origin: z.string().describe("The origin URL (e.g., http://localhost:5173) to retrieve the token from."),
@@ -353,7 +353,7 @@ server.tool(
     return await withServerConnection(async () => {
       try {
         const response = await fetch(
-          `http://${discoveredHost}:${discoveredPort}/get-auth-token`,
+          `http://${discoveredHost}:${discoveredPort}/auth-token-proxy`,
           {
             method: "POST",
             headers: {

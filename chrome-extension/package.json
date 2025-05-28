@@ -1,0 +1,12 @@
+{
+  "name": "browser-tools-mcp-extension",
+  "version": "1.2.0",
+  "description": "Chrome extension for Browser Tools MCP integration",
+  "main": "background.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["chrome-extension", "mcp", "browser-tools"],
+  "author": "AgentDesk AI",
+  "license": "MIT"
+}

@@ -383,34 +383,62 @@ async function retrieveAuthToken(request, sender, sendResponse) {
     const tabId = tabs[0].id;
     
     if (storageType === 'cookie') {
-      // Get all cookies for the origin
-      const cookies = await chrome.cookies.getAll({ url: origin });
-      const authCookie = cookies.find(cookie => cookie.name === tokenKey);
-      
-      if (authCookie) {
-        authToken = authCookie.value;
+      try {
+        // Check if chrome.cookies is available
+        if (!chrome.cookies) {
+          throw new Error("Chrome cookies API not available. Please check extension permissions.");
+        }
+        
+        // Get all cookies for the origin
+        const cookies = await chrome.cookies.getAll({ url: origin });
+        console.log(`Found ${cookies.length} cookies for origin ${origin}:`, cookies.map(c => c.name));
+        
+        const authCookie = cookies.find(cookie => cookie.name === tokenKey);
+        
+        if (authCookie) {
+          authToken = authCookie.value;
+          console.log(`Found cookie '${tokenKey}' with value:`, authToken);
+        } else {
+          console.log(`Cookie '${tokenKey}' not found. Available cookies:`, cookies.map(c => c.name));
+        }
+      } catch (cookieError) {
+        console.error("Error accessing cookies:", cookieError);
+        sendResponse({ error: `Error accessing cookies: ${cookieError.message}` });
+        return;
       }
     } else if (storageType === 'localStorage') {
-      // Execute script in the tab to access localStorage
-      const result = await chrome.scripting.executeScript({
-        target: { tabId },
-        func: (key) => window.localStorage.getItem(key),
-        args: [tokenKey]
-      });
-      
-      if (result && result[0] && result[0].result) {
-        authToken = result[0].result;
+      try {
+        // Execute script in the tab to access localStorage
+        const result = await chrome.scripting.executeScript({
+          target: { tabId },
+          func: (key) => window.localStorage.getItem(key),
+          args: [tokenKey]
+        });
+        
+        if (result && result[0] && result[0].result) {
+          authToken = result[0].result;
+        }
+      } catch (scriptError) {
+        console.error("Error accessing localStorage:", scriptError);
+        sendResponse({ error: `Error accessing localStorage: ${scriptError.message}` });
+        return;
       }
     } else if (storageType === 'sessionStorage') {
-      // Execute script in the tab to access sessionStorage
-      const result = await chrome.scripting.executeScript({
-        target: { tabId },
-        func: (key) => window.sessionStorage.getItem(key),
-        args: [tokenKey]
-      });
-      
-      if (result && result[0] && result[0].result) {
-        authToken = result[0].result;
+      try {
+        // Execute script in the tab to access sessionStorage
+        const result = await chrome.scripting.executeScript({
+          target: { tabId },
+          func: (key) => window.sessionStorage.getItem(key),
+          args: [tokenKey]
+        });
+        
+        if (result && result[0] && result[0].result) {
+          authToken = result[0].result;
+        }
+      } catch (scriptError) {
+        console.error("Error accessing sessionStorage:", scriptError);
+        sendResponse({ error: `Error accessing sessionStorage: ${scriptError.message}` });
+        return;
       }
     }
     
@@ -515,4 +543,297 @@ function captureAndSendScreenshot(message, settings, sendResponse) {
       );
     });
   });
+}
+
+// Add WebSocket connection for browser connector communication
+let wsConnection = null;
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 5;
+let reconnectTimeout = null;
+
+// Function to connect to browser connector WebSocket
+function connectToBrowserConnector() {
+  // Clear any existing reconnect timeout
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
+  }
+
+  try {
+    // Try different ports in case the server switched ports
+    const ports = [3026, 3025, 3027]; // Put 3026 first since that's what the server is using
+    let currentPortIndex = 0;
+
+    function tryConnection() {
+      if (currentPortIndex >= ports.length) {
+        console.log('Failed to connect to any available port, retrying in 5 seconds...');
+        scheduleReconnect();
+        return;
+      }
+
+      const port = ports[currentPortIndex];
+      console.log(`Attempting to connect to browser connector on port ${port}...`);
+      
+      // First validate the server is actually running on this port
+      fetch(`http://localhost:${port}/.identity`)
+        .then(response => response.json())
+        .then(identity => {
+          if (identity.signature === "mcp-browser-connector-24x7") {
+            console.log(`Verified server identity on port ${port}, connecting WebSocket...`);
+            
+            wsConnection = new WebSocket(`ws://localhost:${port}/extension-ws`);
+            
+            wsConnection.onopen = function() {
+              console.log(`Successfully connected to browser connector WebSocket on port ${port}`);
+              reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+              
+              // Save the working port to extension storage
+              chrome.storage.local.set({
+                browserConnectorSettings: {
+                  serverHost: "localhost",
+                  serverPort: port
+                }
+              }, () => {
+                console.log(`Saved working server port ${port} to extension storage`);
+              });
+            };
+            
+            wsConnection.onmessage = function(event) {
+              try {
+                const data = JSON.parse(event.data);
+                console.log('Received WebSocket message from browser connector:', data);
+                
+                // Handle auth token retrieval request from browser connector
+                if (data.type === "RETRIEVE_AUTH_TOKEN") {
+                  console.log('Processing auth token request from browser connector');
+                  
+                  // Create a mock request object for the existing retrieveAuthToken function
+                  const mockRequest = {
+                    type: "RETRIEVE_AUTH_TOKEN",
+                    origin: data.origin,
+                    storageType: data.storageType,
+                    tokenKey: data.tokenKey
+                  };
+                  
+                  // Call the existing function and send response back via WebSocket
+                  retrieveAuthToken(mockRequest, null, function(response) {
+                    console.log('Sending auth token response back to browser connector:', response);
+                    
+                    if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+                      wsConnection.send(JSON.stringify({
+                        type: "RETRIEVE_AUTH_TOKEN_RESPONSE",
+                        token: response.token,
+                        error: response.error
+                      }));
+                    } else {
+                      console.error('WebSocket connection not available when trying to send auth token response');
+                    }
+                  });
+                }
+              } catch (error) {
+                console.error('Error processing WebSocket message:', error);
+              }
+            };
+            
+            wsConnection.onclose = function(event) {
+              console.log(`WebSocket connection closed (code: ${event.code}, reason: ${event.reason})`);
+              wsConnection = null;
+              scheduleReconnect();
+            };
+            
+            wsConnection.onerror = function(error) {
+              console.error(`WebSocket error on port ${port}:`, error);
+              wsConnection = null;
+              // Try next port
+              currentPortIndex++;
+              setTimeout(tryConnection, 1000);
+            };
+          } else {
+            console.log(`Invalid server signature on port ${port}, trying next port...`);
+            currentPortIndex++;
+            setTimeout(tryConnection, 1000);
+          }
+        })
+        .catch(error => {
+          console.log(`Server not found on port ${port}:`, error.message);
+          currentPortIndex++;
+          setTimeout(tryConnection, 1000);
+        });
+    }
+
+    tryConnection();
+    
+  } catch (error) {
+    console.error('Error setting up WebSocket connection:', error);
+    scheduleReconnect();
+  }
+}
+
+function scheduleReconnect() {
+  if (reconnectAttempts >= maxReconnectAttempts) {
+    console.log(`Max reconnection attempts (${maxReconnectAttempts}) reached. Stopping reconnection attempts.`);
+    return;
+  }
+  
+  reconnectAttempts++;
+  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // Exponential backoff, max 30 seconds
+  
+  console.log(`Scheduling reconnection attempt ${reconnectAttempts}/${maxReconnectAttempts} in ${delay}ms`);
+  reconnectTimeout = setTimeout(connectToBrowserConnector, delay);
+}
+
+// Initialize WebSocket connection when the extension loads
+connectToBrowserConnector();
+
+// Add network request interception for background monitoring
+let pendingRequests = new Map(); // Track pending requests to match with responses
+
+// Listen for request start
+chrome.webRequest.onBeforeRequest.addListener(
+  (details) => {
+    // Only track XHR and fetch requests
+    if (details.type === 'xmlhttprequest' || details.type === 'fetch') {
+      console.log('Background: Network request started:', details.url);
+      
+      // Store request details
+      pendingRequests.set(details.requestId, {
+        url: details.url,
+        method: details.method,
+        timestamp: Date.now(),
+        tabId: details.tabId,
+        requestBody: details.requestBody ? JSON.stringify(details.requestBody) : '',
+        type: details.type
+      });
+    }
+  },
+  { urls: ["<all_urls>"] },
+  ["requestBody"]
+);
+
+// Listen for request headers
+chrome.webRequest.onBeforeSendHeaders.addListener(
+  (details) => {
+    if (pendingRequests.has(details.requestId)) {
+      const request = pendingRequests.get(details.requestId);
+      request.requestHeaders = details.requestHeaders || [];
+    }
+  },
+  { urls: ["<all_urls>"] },
+  ["requestHeaders"]
+);
+
+// Listen for response headers
+chrome.webRequest.onHeadersReceived.addListener(
+  (details) => {
+    if (pendingRequests.has(details.requestId)) {
+      const request = pendingRequests.get(details.requestId);
+      request.status = details.statusCode;
+      request.responseHeaders = details.responseHeaders || [];
+    }
+  },
+  { urls: ["<all_urls>"] },
+  ["responseHeaders"]
+);
+
+// Listen for request completion
+chrome.webRequest.onCompleted.addListener(
+  (details) => {
+    if (pendingRequests.has(details.requestId)) {
+      const request = pendingRequests.get(details.requestId);
+      request.status = details.statusCode;
+      
+      console.log('Background: Network request completed:', request.url, 'Status:', request.status);
+      
+      // Send to browser connector
+      sendNetworkRequestToBrowserConnector(request);
+      
+      // Clean up
+      pendingRequests.delete(details.requestId);
+    }
+  },
+  { urls: ["<all_urls>"] }
+);
+
+// Listen for request errors
+chrome.webRequest.onErrorOccurred.addListener(
+  (details) => {
+    if (pendingRequests.has(details.requestId)) {
+      const request = pendingRequests.get(details.requestId);
+      request.status = 0; // Indicate error
+      request.error = details.error;
+      
+      console.log('Background: Network request error:', request.url, 'Error:', request.error);
+      
+      // Send to browser connector
+      sendNetworkRequestToBrowserConnector(request);
+      
+      // Clean up
+      pendingRequests.delete(details.requestId);
+    }
+  },
+  { urls: ["<all_urls>"] }
+);
+
+// Function to send network request data to browser connector
+async function sendNetworkRequestToBrowserConnector(requestData) {
+  try {
+    // Get server settings
+    const result = await new Promise((resolve) => {
+      chrome.storage.local.get(["browserConnectorSettings"], resolve);
+    });
+    
+    const settings = result.browserConnectorSettings || {
+      serverHost: "localhost",
+      serverPort: 3025,
+    };
+
+    // Prepare network request data for sending
+    const networkLogData = {
+      type: "network-request",
+      url: requestData.url,
+      method: requestData.method,
+      status: requestData.status || 0,
+      timestamp: requestData.timestamp,
+      requestHeaders: requestData.requestHeaders || [],
+      responseHeaders: requestData.responseHeaders || [],
+      requestBody: requestData.requestBody || '',
+      responseBody: '', // We can't easily get response body in background script
+      tabId: requestData.tabId,
+      error: requestData.error
+    };
+
+    console.log('Background: Sending network request to browser connector:', {
+      url: networkLogData.url,
+      method: networkLogData.method,
+      status: networkLogData.status
+    });
+
+    // Send to server
+    const serverUrl = `http://${settings.serverHost}:${settings.serverPort}/extension-log`;
+    
+    const response = await fetch(serverUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        data: networkLogData,
+        settings: {
+          logLimit: 50,
+          queryLimit: 30000,
+          showRequestHeaders: true,
+          showResponseHeaders: true,
+        },
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (response.ok) {
+      console.log('Background: Successfully sent network request to browser connector');
+    } else {
+      console.error('Background: Error sending network request to browser connector:', response.status);
+    }
+  } catch (error) {
+    console.error('Background: Error sending network request to browser connector:', error);
+  }
 }
