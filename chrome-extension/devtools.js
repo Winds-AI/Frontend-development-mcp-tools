@@ -966,41 +966,109 @@ async function setupWebSocket() {
           // console.log("Chrome Extension: Received heartbeat response");
         } else if (message.type === "take-screenshot") {
           console.log("Chrome Extension: Taking screenshot...");
-          // Capture screenshot of the current tab
-          chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl) => {
+          console.log("Chrome Extension: Inspected tab ID:", chrome.devtools.inspectedWindow.tabId);
+          
+          // Get the inspected tab information first
+          chrome.tabs.get(chrome.devtools.inspectedWindow.tabId, (inspectedTab) => {
             if (chrome.runtime.lastError) {
-              console.error(
-                "Chrome Extension: Screenshot capture failed:",
-                chrome.runtime.lastError
-              );
+              console.error("Chrome Extension: Error getting inspected tab:", chrome.runtime.lastError);
               ws.send(
                 JSON.stringify({
                   type: "screenshot-error",
-                  error: chrome.runtime.lastError.message,
+                  error: "Failed to get inspected tab: " + chrome.runtime.lastError.message,
                   requestId: message.requestId,
                 })
               );
               return;
             }
 
-            console.log("Chrome Extension: Screenshot captured successfully");
-            // Just send the screenshot data, let the server handle paths
-            const response = {
-              type: "screenshot-data",
-              data: dataUrl,
-              requestId: message.requestId,
-              // Only include path if it's configured in settings
-              ...(settings.screenshotPath && { path: settings.screenshotPath }),
-              // Include auto-paste setting
-              autoPaste: settings.allowAutoPaste,
-            };
+            // Check if it's a DevTools URL
+            if (inspectedTab.url && inspectedTab.url.startsWith("devtools://")) {
+              console.warn("Chrome Extension: Cannot capture screenshots of DevTools pages");
+              ws.send(
+                JSON.stringify({
+                  type: "screenshot-error",
+                  error: "Cannot capture screenshots of DevTools pages. Please navigate to a regular webpage to take screenshots.",
+                  requestId: message.requestId,
+                })
+              );
+              return;
+            }
 
-            console.log("Chrome Extension: Sending screenshot data response", {
-              ...response,
-              data: "[base64 data]",
+            // Make sure the target tab is active and focused
+            chrome.tabs.update(chrome.devtools.inspectedWindow.tabId, { active: true }, (updatedTab) => {
+              if (chrome.runtime.lastError) {
+                console.warn("Chrome Extension: Could not activate target tab:", chrome.runtime.lastError);
+                // Continue anyway, might still work
+              }
+
+              // Get the window containing the inspected tab
+              chrome.windows.get(inspectedTab.windowId, (targetWindow) => {
+                if (chrome.runtime.lastError) {
+                  console.error("Chrome Extension: Error getting target window:", chrome.runtime.lastError);
+                  ws.send(
+                    JSON.stringify({
+                      type: "screenshot-error", 
+                      error: "Failed to get target window: " + chrome.runtime.lastError.message,
+                      requestId: message.requestId,
+                    })
+                  );
+                  return;
+                }
+
+                // Focus the target window to ensure it's visible
+                chrome.windows.update(targetWindow.id, { focused: true }, () => {
+                  if (chrome.runtime.lastError) {
+                    console.warn("Chrome Extension: Could not focus target window:", chrome.runtime.lastError);
+                    // Continue anyway
+                  }
+
+                  // Small delay to ensure window is focused and rendered
+                  setTimeout(() => {
+                    // Capture screenshot of the target window (where the inspected tab is)
+                    chrome.tabs.captureVisibleTab(
+                      targetWindow.id,
+                      { format: "png" },
+                      (dataUrl) => {
+                        if (chrome.runtime.lastError) {
+                          console.error(
+                            "Chrome Extension: Screenshot capture failed:",
+                            chrome.runtime.lastError
+                          );
+                          ws.send(
+                            JSON.stringify({
+                              type: "screenshot-error",
+                              error: chrome.runtime.lastError.message,
+                              requestId: message.requestId,
+                            })
+                          );
+                          return;
+                        }
+
+                        console.log("Chrome Extension: Screenshot captured successfully");
+                        // Just send the screenshot data, let the server handle paths
+                        const response = {
+                          type: "screenshot-data",
+                          data: dataUrl,
+                          requestId: message.requestId,
+                          // Only include path if it's configured in settings
+                          ...(settings.screenshotPath && { path: settings.screenshotPath }),
+                          // Include auto-paste setting
+                          autoPaste: settings.allowAutoPaste,
+                        };
+
+                        console.log("Chrome Extension: Sending screenshot data response", {
+                          ...response,
+                          data: "[base64 data]",
+                        });
+
+                        ws.send(JSON.stringify(response));
+                      }
+                    );
+                  }, 500); // 500ms delay to ensure proper rendering
+                });
+              });
             });
-
-            ws.send(JSON.stringify(response));
           });
         } else if (message.type === "get-current-url") {
           console.log("Chrome Extension: Received request for current URL");

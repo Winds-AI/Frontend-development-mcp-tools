@@ -3,7 +3,8 @@
     "version": "1.2.0",
     "description": "MCP tool for AI code editors to capture data from a browser such as console logs, network requests, screenshots and more",
     "manifest_version": 3,
-    "devtools_page": "devtools.html",    "permissions": [
+    "devtools_page": "devtools.html",
+    "permissions": [
       "activeTab",
       "debugger",
       "storage",
@@ -14,9 +15,13 @@
       "scripting"
     ],
     "host_permissions": [
-      "<all_urls>"
+      "<all_urls>",
+      "devtools://*/*"
     ],
     "background": {
       "service_worker": "background.js"
+    },
+    "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'self'"
     }
 }

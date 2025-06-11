@@ -20,6 +20,7 @@ import {
 } from "./lighthouse/index.js";
 import * as net from "net";
 import { runBestPracticesAudit } from "./lighthouse/best-practices.js";
+import ScreenshotService from "./screenshot-service.js";
 
 /**
  * Converts a file path to the appropriate format for the current platform
@@ -161,7 +162,7 @@ let currentSettings = {
   model: "claude-3-sonnet",
   stringSizeLimit: 500,
   maxLogSize: 20000,
-  screenshotPath: getDefaultDownloadsFolder(),
+  screenshotPath: process.env.SCREENSHOT_STORAGE_PATH || getDefaultDownloadsFolder(),
   // Add server host configuration
   serverHost: process.env.SERVER_HOST || "0.0.0.0", // Default to all interfaces
 };
@@ -666,6 +667,14 @@ export class BrowserConnector {
       }
     );
 
+    // Add unified authenticated API call endpoint
+    this.app.post(
+      "/authenticated-api-call",
+      async (req: express.Request, res: express.Response): Promise<void> => {
+        await this.authenticatedApiCall(req, res);
+      }
+    );
+
     // Set up accessibility audit endpoint
     this.setupAccessibilityAudit();
 
@@ -800,17 +809,17 @@ export class BrowserConnector {
       });
     });
 
-    // Add screenshot endpoint
+    // Add screenshot endpoint using unified service
     this.app.post(
       "/screenshot",
-      (req: express.Request, res: express.Response): void => {
+      async (req: express.Request, res: express.Response): Promise<void> => {
         console.log(
           "Browser Connector: Received request to /screenshot endpoint"
         );
         console.log("Browser Connector: Request body:", req.body);
         try {
           console.log("Received screenshot capture request");
-          const { data, path: outputPath, url } = req.body; // Added url
+          const { data, path: outputPath, url } = req.body;
 
           if (!data) {
             console.log("Screenshot request missing data");
@@ -818,47 +827,31 @@ export class BrowserConnector {
             return;
           }
 
-          // Use provided path or default to downloads folder
-          const targetPath = outputPath || getDefaultDownloadsFolder();
-          console.log(`Using screenshot path: ${targetPath}`);
+          // Use the unified screenshot service
+          const screenshotService = ScreenshotService.getInstance();
+          
+          // Prepare configuration for screenshot service
+          const screenshotConfig = {
+            returnImageData: false, // Legacy endpoint doesn't return image data
+            baseDirectory: outputPath // Use provided path if available
+          };
 
-          // Remove the data:image/png;base64, prefix
-          const base64Data = data.replace(/^data:image\/png;base64,/, "");
+          // Save screenshot using unified service
+          const result = await screenshotService.saveScreenshot(
+            data,
+            url,
+            screenshotConfig
+          );
 
-          // Create the full directory path if it doesn't exist
-          fs.mkdirSync(targetPath, { recursive: true });
-          console.log(`Created/verified directory: ${targetPath}`);
-
-          // Generate filename from URL or fallback to timestamp
-          let filename;
-          if (url && typeof url === 'string' && url.trim() !== '') {
-            let sanitizedUrl = url.replace(/^https?:\/\//, ''); // Remove http(s)://
-            sanitizedUrl = sanitizedUrl.replace(/[\/\\?%*:|"<>\s#&+=]/g, '_'); // Replace special chars with _
-            sanitizedUrl = sanitizedUrl.replace(/__+/g, '_'); // Replace multiple underscores
-            sanitizedUrl = sanitizedUrl.replace(/^_+|_+$/g, ''); // Trim leading/trailing underscores
-            if (sanitizedUrl.length > 100) { // Limit length
-              sanitizedUrl = sanitizedUrl.substring(0, 100);
-            }
-            if (sanitizedUrl === '') { // Fallback if URL becomes empty after sanitization
-              const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-              filename = `screenshot-${timestamp}.png`;
-            } else {
-              filename = `${sanitizedUrl}.png`;
-            }
-          } else {
-            const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-            filename = `screenshot-no-url-${timestamp}.png`;
-          }
-          const fullPath = path.join(targetPath, filename);
-          console.log(`Saving screenshot to: ${fullPath}`);
-
-          // Write the file
-          fs.writeFileSync(fullPath, base64Data, "base64");
-          console.log("Screenshot saved successfully");
+          console.log(`Screenshot saved successfully to: ${result.filePath}`);
+          console.log(`Project directory: ${result.projectDirectory}`);
+          console.log(`URL category: ${result.urlCategory}`);
 
           res.json({
-            path: fullPath,
-            filename: filename,
+            path: result.filePath,
+            filename: result.filename,
+            projectDirectory: result.projectDirectory,
+            urlCategory: result.urlCategory,
           });
         } catch (error: unknown) {
           console.error("Error saving screenshot:", error);
@@ -1008,11 +1001,12 @@ export class BrowserConnector {
     return this.activeConnection !== null;
   }
 
-  // Add new endpoint for programmatic screenshot capture
+  // Add new endpoint for programmatic screenshot capture using unified service
   async captureScreenshot(req: express.Request, res: express.Response) {
     console.log("Browser Connector: Starting captureScreenshot method");
     console.log("Browser Connector: Request headers:", req.headers);
     console.log("Browser Connector: Request method:", req.method);
+    console.log("Browser Connector: Request body:", req.body);
 
     if (!this.activeConnection) {
       console.log(
@@ -1022,7 +1016,14 @@ export class BrowserConnector {
     }
 
     try {
+      // Extract parameters from request body
+      const { filename: customFilename, returnImageData = true, projectName } = req.body || {};
+      
       console.log("Browser Connector: Starting screenshot capture...");
+      console.log("Browser Connector: Custom filename:", customFilename);
+      console.log("Browser Connector: Return image data:", returnImageData);
+      console.log("Browser Connector: Project name:", projectName);
+      
       const requestId = Date.now().toString();
       console.log("Browser Connector: Generated requestId:", requestId);
 
@@ -1076,237 +1077,70 @@ export class BrowserConnector {
         path: customPath,
         autoPaste,
       } = await screenshotPromise;
-      console.log("Browser Connector: Received screenshot data, saving...");
+      console.log("Browser Connector: Received screenshot data, processing with unified service...");
       console.log("Browser Connector: Custom path from extension:", customPath);
       console.log("Browser Connector: Auto-paste setting:", autoPaste);
-
-      // Always prioritize the path from the Chrome extension
-      let targetPath = customPath;
-
-      // If no path provided by extension, fall back to defaults
-      if (!targetPath) {
-        targetPath =
-          currentSettings.screenshotPath || getDefaultDownloadsFolder();
-      }
-
-      // Convert the path for the current platform
-      targetPath = convertPathForCurrentPlatform(targetPath);
-
-      console.log(`Browser Connector: Using path: ${targetPath}`);
 
       if (!base64Data) {
         throw new Error("No screenshot data received from Chrome extension");
       }
 
-      try {
-        fs.mkdirSync(targetPath, { recursive: true });
-        console.log(`Browser Connector: Created directory: ${targetPath}`);
-      } catch (err) {
-        console.error(
-          `Browser Connector: Error creating directory: ${targetPath}`,
-          err
-        );
-        throw new Error(
-          `Failed to create screenshot directory: ${
-            err instanceof Error ? err.message : String(err)
-          }`
-        );
-      }
+      // Use the unified screenshot service
+      const screenshotService = ScreenshotService.getInstance();
+      
+      // Prepare configuration for screenshot service
+      const screenshotConfig = {
+        filename: customFilename,
+        returnImageData: returnImageData,
+        projectName: projectName,
+        baseDirectory: customPath // Use extension path if provided
+      };
 
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const filename = `screenshot-${timestamp}.png`;
-      const fullPath = path.join(targetPath, filename);
-      console.log(`Browser Connector: Full screenshot path: ${fullPath}`);
+      // Save screenshot using unified service
+      const result = await screenshotService.saveScreenshot(
+        base64Data,
+        currentUrl,
+        screenshotConfig
+      );
 
-      // Remove the data:image/png;base64, prefix if present
-      const cleanBase64 = base64Data.replace(/^data:image\/png;base64,/, "");
+      console.log(`Browser Connector: Screenshot saved successfully to: ${result.filePath}`);
+      console.log(`Browser Connector: Project directory: ${result.projectDirectory}`);
+      console.log(`Browser Connector: URL category: ${result.urlCategory}`);
 
-      // Save the file
-      try {
-        fs.writeFileSync(fullPath, cleanBase64, "base64");
-        console.log(`Browser Connector: Screenshot saved to: ${fullPath}`);
-      } catch (err) {
-        console.error(
-          `Browser Connector: Error saving screenshot to: ${fullPath}`,
-          err
-        );
-        throw new Error(
-          `Failed to save screenshot: ${
-            err instanceof Error ? err.message : String(err)
-          }`
-        );
-      }
-
-      // Check if running on macOS before executing AppleScript
+      // Execute auto-paste if requested and on macOS
       if (os.platform() === "darwin" && autoPaste === true) {
-        console.log(
-          "Browser Connector: Running on macOS with auto-paste enabled, executing AppleScript to paste into Cursor"
-        );
-
-        // Create the AppleScript to copy the image to clipboard and paste into Cursor
-        // This version is more robust and includes debugging
-        const appleScript = `
-          -- Set path to the screenshot
-          set imagePath to "${fullPath}"
-          
-          -- Copy the image to clipboard
-          try
-            set the clipboard to (read (POSIX file imagePath) as «class PNGf»)
-          on error errMsg
-            log "Error copying image to clipboard: " & errMsg
-            return "Failed to copy image to clipboard: " & errMsg
-          end try
-          
-          -- Activate Cursor application
-          try
-            tell application "Cursor"
-              activate
-            end tell
-          on error errMsg
-            log "Error activating Cursor: " & errMsg
-            return "Failed to activate Cursor: " & errMsg
-          end try
-          
-          -- Wait for the application to fully activate
-          delay 3
-          
-          -- Try to interact with Cursor
-          try
-            tell application "System Events"
-              tell process "Cursor"
-                -- Get the frontmost window
-                if (count of windows) is 0 then
-                  return "No windows found in Cursor"
-                end if
-                
-                set cursorWindow to window 1
-                
-                -- Try Method 1: Look for elements of class "Text Area"
-                set foundElements to {}
-                
-                -- Try different selectors to find the text input area
-                try
-                  -- Try with class
-                  set textAreas to UI elements of cursorWindow whose class is "Text Area"
-                  if (count of textAreas) > 0 then
-                    set foundElements to textAreas
-                  end if
-                end try
-                
-                if (count of foundElements) is 0 then
-                  try
-                    -- Try with AXTextField role
-                    set textFields to UI elements of cursorWindow whose role is "AXTextField"
-                    if (count of textFields) > 0 then
-                      set foundElements to textFields
-                    end if
-                  end try
-                end if
-                
-                if (count of foundElements) is 0 then
-                  try
-                    -- Try with AXTextArea role in nested elements
-                    set allElements to UI elements of cursorWindow
-                    repeat with anElement in allElements
-                      try
-                        set childElements to UI elements of anElement
-                        repeat with aChild in childElements
-                          try
-                            if role of aChild is "AXTextArea" or role of aChild is "AXTextField" then
-                              set end of foundElements to aChild
-                            end if
-                          end try
-                        end repeat
-                      end try
-                    end repeat
-                  end try
-                end if
-                
-                -- If no elements found with specific attributes, try a broader approach
-                if (count of foundElements) is 0 then
-                  -- Just try to use the Command+V shortcut on the active window
-                   -- This assumes Cursor already has focus on the right element
-                    keystroke "v" using command down
-                    delay 1
-                    keystroke "here is the screenshot"
-                    delay 1
-                   -- Try multiple methods to press Enter
-                   key code 36 -- Use key code for Return key
-                   delay 0.5
-                   keystroke return -- Use keystroke return as alternative
-                   return "Used fallback method: Command+V on active window"
-                else
-                  -- We found a potential text input element
-                  set inputElement to item 1 of foundElements
-                  
-                  -- Try to focus and paste
-                  try
-                    set focused of inputElement to true
-                    delay 0.5
-                    
-                    -- Paste the image
-                    keystroke "v" using command down
-                    delay 1
-                    
-                    -- Type the text
-                    keystroke "here is the screenshot"
-                    delay 1
-                    -- Try multiple methods to press Enter
-                    key code 36 -- Use key code for Return key
-                    delay 0.5
-                    keystroke return -- Use keystroke return as alternative
-                    return "Successfully pasted screenshot into Cursor text element"
-                  on error errMsg
-                    log "Error interacting with found element: " & errMsg
-                    -- Fallback to just sending the key commands
-                    keystroke "v" using command down
-                    delay 1
-                    keystroke "here is the screenshot"
-                    delay 1
-                    -- Try multiple methods to press Enter
-                    key code 36 -- Use key code for Return key
-                    delay 0.5
-                    keystroke return -- Use keystroke return as alternative
-                    return "Used fallback after element focus error: " & errMsg
-                  end try
-                end if
-              end tell
-            end tell
-          on error errMsg
-            log "Error in System Events block: " & errMsg
-            return "Failed in System Events: " & errMsg
-          end try
-        `;
-
-        // Execute the AppleScript
-        exec(`osascript -e '${appleScript}'`, (error, stdout, stderr) => {
-          if (error) {
-            console.error(
-              `Browser Connector: Error executing AppleScript: ${error.message}`
-            );
-            console.error(`Browser Connector: stderr: ${stderr}`);
-            // Don't fail the response; log the error and proceed
-          } else {
-            console.log(`Browser Connector: AppleScript executed successfully`);
-            console.log(`Browser Connector: stdout: ${stdout}`);
-          }
-        });
+        console.log("Browser Connector: Executing auto-paste to Cursor...");
+        try {
+          await screenshotService.executeAutoPaste(result.filePath);
+          console.log("Browser Connector: Auto-paste executed successfully");
+        } catch (autoPasteError) {
+          console.error("Browser Connector: Auto-paste failed:", autoPasteError);
+          // Don't fail the screenshot save for auto-paste errors
+        }
       } else {
         if (os.platform() === "darwin" && !autoPaste) {
-          console.log(
-            `Browser Connector: Running on macOS but auto-paste is disabled, skipping AppleScript execution`
-          );
+          console.log("Browser Connector: Auto-paste disabled, skipping");
         } else {
-          console.log(
-            `Browser Connector: Not running on macOS, skipping AppleScript execution`
-          );
+          console.log("Browser Connector: Not on macOS, skipping auto-paste");
         }
       }
 
-      res.json({
-        path: fullPath,
-        filename: filename,
-      });
+      // Build response object
+      const response: any = {
+        filePath: result.filePath,
+        filename: result.filename,
+        projectDirectory: result.projectDirectory,
+        urlCategory: result.urlCategory,
+      };
+
+      // Include image data if requested
+      if (returnImageData && result.imageData) {
+        response.imageData = result.imageData;
+        console.log("Browser Connector: Including image data in response");
+      }
+
+      console.log("Browser Connector: Screenshot capture completed successfully");
+      res.json(response);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -1395,6 +1229,160 @@ export class BrowserConnector {
         res.status(500).json({ error: error.message });
       } else {
         res.status(500).json({ error: "An unknown error occurred" });
+      }
+    }
+  }
+
+  // Add unified authenticated API call method
+  async authenticatedApiCall(req: express.Request, res: express.Response): Promise<void> {
+    console.log("Browser Connector: Received authenticated API call request");
+    
+    const { authConfig, apiCall, options } = req.body;
+    
+    if (!authConfig || !apiCall) {
+      res.status(400).json({ 
+        error: "Missing required parameters. Please provide authConfig and apiCall objects." 
+      });
+      return;
+    }
+    
+    const { origin, storageType, tokenKey } = authConfig;
+    const { baseUrl, endpoint, method = "GET", requestBody, queryParams, additionalHeaders = {} } = apiCall;
+    const { includeResponseDetails = true } = options || {};
+    
+    if (!origin || !storageType || !tokenKey || !baseUrl || !endpoint) {
+      res.status(400).json({ 
+        error: "Missing required parameters in authConfig or apiCall." 
+      });
+      return;
+    }
+    
+    if (!['cookie', 'localStorage', 'sessionStorage'].includes(storageType)) {
+      res.status(400).json({
+        error: "Invalid storageType. Must be 'cookie', 'localStorage', or 'sessionStorage'."
+      });
+      return;
+    }
+    
+    try {
+      if (!this.activeConnection) {
+        res.status(503).json({ error: "No active browser connection available" });
+        return;
+      }
+      
+      // Step 1: Get the auth token from browser
+      console.log("Step 1: Retrieving auth token from browser...");
+      const tokenPromise = new Promise<string>((resolve, reject) => {
+        const messageHandler = (message: string | Buffer | ArrayBuffer | Buffer[]) => {
+          try {
+            const data = JSON.parse(message.toString());
+            
+            if (data.type === "RETRIEVE_AUTH_TOKEN_RESPONSE") {
+              this.activeConnection?.removeListener('message', messageHandler);
+              
+              if (data.error) {
+                reject(new Error(data.error));
+              } else {
+                resolve(data.token);
+              }
+            }
+          } catch (error) {
+            // Ignore parsing errors for other messages
+          }
+        };
+        
+        this.activeConnection?.on('message', messageHandler);
+        
+        this.activeConnection?.send(JSON.stringify({
+          type: "RETRIEVE_AUTH_TOKEN",
+          origin,
+          storageType,
+          tokenKey
+        }));
+        
+        setTimeout(() => {
+          this.activeConnection?.removeListener('message', messageHandler);
+          reject(new Error("Timeout waiting for auth token from browser extension"));
+        }, 10000);
+      });
+      
+      const authToken = await tokenPromise;
+      console.log("Step 1 Complete: Auth token retrieved successfully");
+      
+      // Step 2: Make the API call with the token
+      console.log(`Step 2: Making API call to ${method} ${baseUrl}${endpoint}`);
+      
+      // Build the full URL
+      let fullUrl = `${baseUrl}${endpoint}`;
+      
+      // Add query parameters if provided
+      if (queryParams && Object.keys(queryParams).length > 0) {
+        const urlParams = new URLSearchParams(queryParams);
+        fullUrl += `?${urlParams.toString()}`;
+      }
+      
+      // Prepare headers
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
+        ...additionalHeaders
+      };
+      
+      // Prepare fetch options
+      const fetchOptions: RequestInit = {
+        method: method,
+        headers: headers
+      };
+      
+      // Add request body for POST/PUT/PATCH
+      if (requestBody && ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase())) {
+        fetchOptions.body = JSON.stringify(requestBody);
+      }
+      
+      // Make the API call
+      const startTime = Date.now();
+      const apiResponse = await fetch(fullUrl, fetchOptions);
+      const endTime = Date.now();
+      
+      // Parse response
+      let responseData;
+      const contentType = apiResponse.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        responseData = await apiResponse.json();
+      } else {
+        responseData = await apiResponse.text();
+      }
+      
+      console.log(`Step 2 Complete: API call completed with status ${apiResponse.status}`);
+      
+      // Build response object
+      const result: any = {
+        data: responseData
+      };
+      
+      if (includeResponseDetails) {
+        result.details = {
+          status: apiResponse.status,
+          statusText: apiResponse.statusText,
+          headers: Object.fromEntries(apiResponse.headers.entries()),
+          timing: {
+            requestDuration: endTime - startTime,
+            timestamp: new Date().toISOString()
+          },
+          url: fullUrl,
+          method: method
+        };
+      }
+      
+      res.json(result);
+      
+    } catch (error) {
+      console.error("Error in authenticated API call:", error);
+      if (error instanceof Error) {
+        res.status(500).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: "An unknown error occurred during authenticated API call" });
       }
     }
   }

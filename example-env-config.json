@@ -1,0 +1,154 @@
+{
+  "mcpServers": {
+    "browser-tools": {
+      "command": "node",
+      "args": ["path/to/your/mcp-server.js"],
+      "env": {
+        "_comment_screenshot": "🖼️ UNIFIED SCREENSHOT SYSTEM - New organized screenshot management",
+        "SCREENSHOT_STORAGE_PATH": "/home/user/Screenshots/Projects",
+        "PROJECT_NAME": "bandar-admin-panel",
+        
+        "_comment_api": "🔗 API Testing & Authentication",
+        "AUTH_ORIGIN": "http://localhost:5173",
+        "AUTH_STORAGE_TYPE": "localStorage",
+        "AUTH_TOKEN_KEY": "authToken", 
+        "API_BASE_URL": "https://api.example.com",
+        
+        "_comment_discovery": "📚 Document & API Discovery",
+        "SWAGGER_URL": "https://api.example.com/swagger.json",
+        "PROJECT_ROOT": "/path/to/your/project",
+        
+        "_comment_vector": "🧠 Vector Database (for FRD document ingestion)",
+        "GOOGLE_API_KEY": "your_google_api_key_for_embeddings",
+        "QDRANT_API_KEY": "your_qdrant_api_key",
+        "QDRANT_URL": "http://localhost:6333"
+      }
+    }
+  },
+  
+  "_examples": {
+    "_comment": "📋 EXAMPLE CONFIGURATIONS FOR DIFFERENT SCENARIOS",
+    
+    "minimal_config": {
+      "mcpServers": {
+        "browser-tools": {
+          "command": "node",
+          "args": ["path/to/your/mcp-server.js"],
+          "env": {
+            "PROJECT_NAME": "my-project"
+          }
+        }
+      }
+    },
+    
+    "multi_project_agency": {
+      "_comment": "🏢 Agency managing multiple client projects",
+      "mcpServers": {
+        "browser-tools-client1": {
+          "command": "node",
+          "args": ["path/to/your/mcp-server.js"],
+          "env": {
+            "PROJECT_NAME": "client-a-website",
+            "SCREENSHOT_STORAGE_PATH": "/shared/agency-screenshots",
+            "AUTH_ORIGIN": "https://client-a.com",
+            "API_BASE_URL": "https://api.client-a.com"
+          }
+        },
+        "browser-tools-client2": {
+          "command": "node",
+          "args": ["path/to/your/mcp-server.js"],
+          "env": {
+            "PROJECT_NAME": "client-b-ecommerce",
+            "SCREENSHOT_STORAGE_PATH": "/shared/agency-screenshots",
+            "AUTH_ORIGIN": "https://client-b.com",
+            "API_BASE_URL": "https://api.client-b.com"
+          }
+        }
+      }
+    },
+    
+    "development_environments": {
+      "_comment": "🔧 Different environments for same project",
+      "mcpServers": {
+        "browser-tools-dev": {
+          "command": "node",
+          "args": ["path/to/your/mcp-server.js"],
+          "env": {
+            "PROJECT_NAME": "myapp-development",
+            "AUTH_ORIGIN": "http://localhost:3000",
+            "API_BASE_URL": "http://localhost:8000"
+          }
+        },
+        "browser-tools-staging": {
+          "command": "node",
+          "args": ["path/to/your/mcp-server.js"],
+          "env": {
+            "PROJECT_NAME": "myapp-staging",
+            "AUTH_ORIGIN": "https://staging.myapp.com",
+            "API_BASE_URL": "https://api-staging.myapp.com"
+          }
+        },
+        "browser-tools-prod": {
+          "command": "node",
+          "args": ["path/to/your/mcp-server.js"],
+          "env": {
+            "PROJECT_NAME": "myapp-production",
+            "AUTH_ORIGIN": "https://myapp.com",
+            "API_BASE_URL": "https://api.myapp.com"
+          }
+        }
+      }
+    },
+    
+    "team_shared_setup": {
+      "_comment": "👥 Shared team configuration",
+      "mcpServers": {
+        "browser-tools": {
+          "command": "node",
+          "args": ["path/to/your/mcp-server.js"],
+          "env": {
+            "PROJECT_NAME": "bandar-platform",
+            "SCREENSHOT_STORAGE_PATH": "/team/shared-screenshots",
+            "AUTH_ORIGIN": "http://localhost:5173",
+            "AUTH_STORAGE_TYPE": "localStorage",
+            "AUTH_TOKEN_KEY": "authToken",
+            "API_BASE_URL": "https://api.bandar.local",
+            "SWAGGER_URL": "https://api.bandar.local/swagger.json",
+            "PROJECT_ROOT": "/team/projects/bandar-platform"
+          }
+        }
+      }
+    }
+  },
+  
+  "_usage_notes": {
+    "_comment": "📖 USAGE NOTES",
+    "screenshot_organization": {
+      "_comment": "Screenshots automatically organized as:",
+      "structure": "SCREENSHOT_STORAGE_PATH/PROJECT_NAME/url-category/timestamp_filename.png",
+      "examples": [
+        "~/Screenshots/Projects/bandar-admin-panel/dashboard/2025-06-11_14-30-15_user-management.png",
+        "~/Screenshots/Projects/bandar-admin-panel/login/2025-06-11_14-25-10_before-form-submit.png"
+      ]
+    },
+    "project_detection": {
+      "_comment": "Project name detection priority:",
+      "priority_order": [
+        "1. Tool parameter: projectName in takeScreenshot call",
+        "2. Environment variable: PROJECT_NAME", 
+        "3. Git repository: extracted from git remote origin",
+        "4. Current directory: working directory name",
+        "5. Fallback: 'default-project'"
+      ]
+    },
+    "url_categorization": {
+      "_comment": "URL-based folder categorization:",
+      "examples": {
+        "http://localhost:3000/dashboard": "dashboard/",
+        "http://localhost:3000/users/profile": "users/",
+        "https://staging.example.com/products": "staging/products/",
+        "https://app.example.com/settings": "production/settings/"
+      }
+    }
+  }
+}

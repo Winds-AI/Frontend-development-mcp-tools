@@ -66,7 +66,12 @@ git clone https://github.com/Winds-AI/Browser-MCP.git
           "PROJECT_ROOT": "your_project_root",      // set this if you want to use analyzeImageFile tool else comment this line
           "GOOGLE_API_KEY": "your_google_api_key",  // set this if you want to use ingestFrdDocument, getFrdIngestionStatus,  tool else comment this line
           "QDRANT_API_KEY": "your_qdrant_api_key",  // set this if you want to use ingestFrdDocument, getFrdIngestionStatus,  tool else comment this line
-          "QDRANT_URL": "your_qdrant_url"           // set this if you want to use ingestFrdDocument, getFrdIngestionStatus,  tool else comment this line. (defaults to http://localhost:6333 for local running QDrant)
+          "QDRANT_URL": "your_qdrant_url",          // set this if you want to use ingestFrdDocument, getFrdIngestionStatus,  tool else comment this line. (defaults to http://localhost:6333 for local running QDrant)
+          "AUTH_ORIGIN": "http://localhost:5173",   // set this for executeAuthenticatedApiCall tool - the origin where your app is running
+          "AUTH_STORAGE_TYPE": "localStorage",      // set this for executeAuthenticatedApiCall tool - where the auth token is stored (cookie/localStorage/sessionStorage)
+          "AUTH_TOKEN_KEY": "authToken",            // set this for executeAuthenticatedApiCall tool - the key name for the auth token
+          "API_BASE_URL": "https://api.example.com" // set this for executeAuthenticatedApiCall tool - your API base URL
+          "SCREENSHOT_STORAGE_PATH": "/path/to/screenshots" // set this to customize where screenshots are saved (defaults to Downloads folder)
         }
       }
     }
@@ -94,3 +99,31 @@ If you encounter issues:
 2. Restart the browser-tools-server
 3. Ensure only one instance of Chrome DevTools panel is open
 4. Check console logs for error messages
+
+### Common Issues
+
+#### Screenshot Permission Error
+**Error**: "Cannot access contents of url 'devtools://devtools/'. Extension manifest must request permission to access this host."
+
+**Solution**: 
+- This error occurs when trying to take screenshots from DevTools pages
+- Navigate to a regular webpage (not DevTools) to take screenshots
+- The extension can only capture screenshots of normal web content, not DevTools interface
+
+#### Server Connection Issues
+**Error**: "Not connected to a valid browser tools server"
+
+**Solution**:
+1. Ensure the browser-tools-server is running: `node ./dist/browser-connector.js`
+2. Check if the server port matches your extension settings (default: 3025)
+3. If port 3025 is in use, the server will auto-select another port - check the console output
+4. Update the extension settings with the correct port number
+
+#### Screenshot Storage Issues
+**Error**: Screenshots not saving to expected location
+
+**Solution**:
+1. Check the screenshot path in extension settings
+2. Ensure the directory exists and has write permissions
+3. For organized screenshots, set the `PROJECT_NAME` environment variable
+4. Screenshots are automatically organized by project and URL structure

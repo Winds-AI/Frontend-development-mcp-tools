@@ -198,7 +198,7 @@ async function withServerConnection<T>(
 
 server.tool(
   "analyzeApiCalls",
-  "Analyze API interactions between frontend and backend by retrieving filtered network request details. Use this tool when you need to: 1) Inspect API calls to specific endpoints, 2) Debug network errors and status codes, 3) Examine request/response payloads, 4) Investigate authentication headers, or 5) Monitor AJAX requests. Filter by URL patterns and select which specific details to retrieve (url, method, status, headers, body). Results include timestamps to help distinguish between identical API calls made at different times.",
+  "Analyze network requests made by the browser to debug API interactions. Use this to inspect request/response details, check authentication headers, or debug network errors.",
   { // <--- START with a plain object brace {
     urlFilter: z.string().describe("Substring or pattern to filter request URLs."),
     details: z
@@ -272,48 +272,75 @@ server.tool(
 
 server.tool(
   "takeScreenshot",
-  "Take a screenshot of the current browser tab then analyze it to understand the current UI state",
-  async () => {
+  "Take a screenshot of the current browser tab and return the image data for immediate analysis. The screenshot is automatically organized by project and URL structure in a centralized directory system.",
+  {
+    filename: z.string().optional().describe("Optional custom filename for the screenshot (without extension). If not provided, uses timestamp-based naming."),
+    returnImageData: z.boolean().optional().default(true).describe("Whether to return the base64 image data in the response for immediate analysis"),
+    projectName: z.string().optional().describe("Optional project name to override automatic project detection. Screenshots will be organized under this project folder.")
+  },
+  async (params) => {
     return await withServerConnection(async () => {
       try {
-        const response = await fetch(
-          `http://${discoveredHost}:${discoveredPort}/capture-screenshot`,
-          {
-            method: "POST",
-          }
-        );
+        const { filename, returnImageData = true, projectName } = params || {};
+        
+        const targetUrl = `http://${discoveredHost}:${discoveredPort}/capture-screenshot`;
+        const requestPayload = {
+          filename: filename,
+          returnImageData: returnImageData,
+          projectName: projectName
+        };
+        
+        const response = await fetch(targetUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(requestPayload)
+        });
 
         const result = await response.json();
 
         if (response.ok) {
+          const responseContent: any[] = [
+            {
+              type: "text",
+              text: `✅ Screenshot captured successfully!\n📁 Project: ${result.projectDirectory || 'default-project'}\n📂 Category: ${result.urlCategory || 'general'}\n💾 Saved to: ${result.filePath || 'browser extension panel'}`
+            }
+          ];
+
+          // Include image data if requested and available
+          if (returnImageData && result.imageData) {
+            responseContent.push({
+              type: "image",
+              data: result.imageData,
+              mimeType: "image/png"
+            });
+          }
+
           return {
-            content: [
-              {
-                type: "text",
-                text: "Successfully saved screenshot",
-              },
-            ],
+            content: responseContent
           };
         } else {
           return {
             content: [
               {
                 type: "text",
-                text: `Error taking screenshot: ${result.error}`,
-              },
+                text: `Error taking screenshot: ${result.error}`
+              }
             ],
+            isError: true
           };
         }
       } catch (error: any) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
         return {
           content: [
             {
               type: "text",
-              text: `Failed to take screenshot: ${errorMessage}`,
-            },
+              text: `Failed to take screenshot: ${errorMessage}`
+            }
           ],
+          isError: true
         };
       }
     });
@@ -322,7 +349,7 @@ server.tool(
 
 server.tool(
   "getSelectedElement",
-  "Get the selected element from the browser",
+  "Get details about the currently selected element in the browser",
   async () => {
     return await withServerConnection(async () => {
       const response = await fetch(
@@ -342,31 +369,71 @@ server.tool(
 );
 
 server.tool(
-  "getAccessToken",
-  "Retrieves authentication token from a specified origin (e.g., localhost:5173) either from cookies, localStorage, or sessionStorage. This helps when making authenticated API requests.",
+  "executeAuthenticatedApiCall",
+  "Execute authenticated API calls and get real response data. Use this to test API endpoints with actual authentication and understand the real response structure for accurate TypeScript interfaces. Call this after using searchApiDocs to validate endpoints with live data.",
   {
-    origin: z.string().describe("The origin URL (e.g., http://localhost:5173) to retrieve the token from."),
-    storageType: z.enum(["cookie", "localStorage", "sessionStorage"]).describe("Where to look for the token: in cookies, localStorage, or sessionStorage."),
-    tokenKey: z.string().describe("The name of the cookie or the localStorage/sessionStorage key that contains the auth token.")
-  },  async (params) => {
+    endpoint: z.string().describe("The API endpoint path (e.g., '/api/users', '/auth/profile'). Will be combined with API_BASE_URL from environment."),
+    method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]).optional().default("GET").describe("HTTP method for the API call"),
+    requestBody: z.any().optional().describe("Request body for POST/PUT/PATCH requests (will be JSON stringified)"),
+    queryParams: z.record(z.string()).optional().describe("Query parameters as key-value pairs"),
+    additionalHeaders: z.record(z.string()).optional().describe("Additional headers to include in the request"),
+    includeResponseDetails: z.boolean().optional().default(true).describe("Whether to include detailed response analysis (status, headers, timing)")
+  },
+  async (params) => {
     return await withServerConnection(async () => {
-      try {        const targetUrl = `http://${discoveredHost}:${discoveredPort}/auth-token-proxy`;
-        const requestBody = {
-          origin: params.origin,
-          storageType: params.storageType,
-          tokenKey: params.tokenKey
+      try {
+        const { endpoint, method = "GET", requestBody, queryParams, additionalHeaders, includeResponseDetails } = params;
+        
+        // Check required environment variables
+        const authOrigin = process.env.AUTH_ORIGIN;
+        const authStorageType = process.env.AUTH_STORAGE_TYPE;
+        const authTokenKey = process.env.AUTH_TOKEN_KEY;
+        const apiBaseUrl = process.env.API_BASE_URL;
+        
+        if (!authOrigin || !authStorageType || !authTokenKey || !apiBaseUrl) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "Missing required environment variables. Please set: AUTH_ORIGIN, AUTH_STORAGE_TYPE, AUTH_TOKEN_KEY, and API_BASE_URL"
+              }
+            ],
+            isError: true
+          };
+        }
+
+        const targetUrl = `http://${discoveredHost}:${discoveredPort}/authenticated-api-call`;
+        const requestPayload = {
+          // Auth configuration from environment
+          authConfig: {
+            origin: authOrigin,
+            storageType: authStorageType,
+            tokenKey: authTokenKey
+          },
+          // API call configuration
+          apiCall: {
+            baseUrl: apiBaseUrl,
+            endpoint: endpoint,
+            method: method,
+            requestBody: requestBody,
+            queryParams: queryParams,
+            additionalHeaders: additionalHeaders || {}
+          },
+          options: {
+            includeResponseDetails: includeResponseDetails
+          }
         };
         
-        console.error(`[DEBUG] getAccessToken - Target URL: ${targetUrl}`);
-        console.error(`[DEBUG] getAccessToken - Request body: ${JSON.stringify(requestBody)}`);
-        console.error(`[DEBUG] getAccessToken - Discovered host: ${discoveredHost}, port: ${discoveredPort}`);
+        console.log(`[DEBUG] executeAuthenticatedApiCall - Making request to: ${endpoint}`);
+        console.log(`[DEBUG] executeAuthenticatedApiCall - Method: ${method}`);
+        console.log(`[DEBUG] executeAuthenticatedApiCall - Auth origin: ${authOrigin}`);
         
         const response = await fetch(targetUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify(requestBody)
+          body: JSON.stringify(requestPayload)
         });
 
         const result = await response.json();
@@ -376,31 +443,47 @@ server.tool(
             content: [
               {
                 type: "text",
-                text: `Failed to retrieve auth token: ${result.error || "Unknown error"}`
+                text: `Failed to execute authenticated API call: ${result.error || "Unknown error"}`
               }
             ],
             isError: true
           };
         }
 
+        // Structure the response for better readability
+        const responseContent: any[] = [
+          {
+            type: "text",
+            text: `✅ API Call Successful: ${method} ${apiBaseUrl}${endpoint}`
+          }
+        ];
+
+        if (includeResponseDetails && result.details) {
+          responseContent.push({
+            type: "text",
+            text: `📊 Response Details:\n${JSON.stringify({
+              status: result.details.status,
+              statusText: result.details.statusText,
+              headers: result.details.headers,
+              timing: result.details.timing
+            }, null, 2)}`
+          });
+        }
+
+        responseContent.push({
+          type: "text",
+          text: `📄 Response Data:\n${JSON.stringify(result.data, null, 2)}`
+        });
+
         return {
-          content: [
-            {
-              type: "text",
-              text: `Authentication token retrieved successfully from ${params.storageType}:`
-            },
-            {
-              type: "text",
-              text: result.token
-            }
-          ]
+          content: responseContent
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error retrieving auth token: ${error instanceof Error ? error.message : String(error)}`
+              text: `Error executing authenticated API call: ${error instanceof Error ? error.message : String(error)}`
             }
           ],
           isError: true
@@ -410,10 +493,84 @@ server.tool(
   }
 );
 
+// server.tool(
+//   "getAccessToken",
+//   "⚠️ DEPRECATED: Use executeAuthenticatedApiCall instead. This tool is kept for backward compatibility but the new unified tool is recommended for better reliability and automatic token handling.",
+//   {
+//     origin: z.string().describe("The origin URL (e.g., http://localhost:5173) to retrieve the token from."),
+//     storageType: z.enum(["cookie", "localStorage", "sessionStorage"]).describe("Where to look for the token: in cookies, localStorage, or sessionStorage."),
+//     tokenKey: z.string().describe("The name of the cookie or the localStorage/sessionStorage key that contains the auth token.")
+//   },  async (params) => {
+//     return await withServerConnection(async () => {
+//       try {        const targetUrl = `http://${discoveredHost}:${discoveredPort}/auth-token-proxy`;
+//         const requestBody = {
+//           origin: params.origin,
+//           storageType: params.storageType,
+//           tokenKey: params.tokenKey
+//         };
+        
+//         console.error(`[DEBUG] getAccessToken (DEPRECATED) - Target URL: ${targetUrl}`);
+//         console.error(`[DEBUG] getAccessToken (DEPRECATED) - Request body: ${JSON.stringify(requestBody)}`);
+//         console.error(`[DEBUG] getAccessToken (DEPRECATED) - Discovered host: ${discoveredHost}, port: ${discoveredPort}`);
+        
+//         const response = await fetch(targetUrl, {
+//           method: "POST",
+//           headers: {
+//             "Content-Type": "application/json"
+//           },
+//           body: JSON.stringify(requestBody)
+//         });
+
+//         const result = await response.json();
+        
+//         if (!response.ok) {
+//           return {
+//             content: [
+//               {
+//                 type: "text",
+//                 text: `Failed to retrieve auth token: ${result.error || "Unknown error"}`
+//               }
+//             ],
+//             isError: true
+//           };
+//         }
+
+//         return {
+//           content: [
+//             {
+//               type: "text",
+//               text: `⚠️ Note: Consider using 'executeAuthenticatedApiCall' for better reliability.`
+//             },
+//             {
+//               type: "text",
+//               text: `Authentication token retrieved successfully from ${params.storageType}:`
+//             },
+//             {
+//               type: "text",
+//               text: result.token
+//             }
+//           ]
+//         };
+//       } catch (error) {
+//         return {
+//           content: [
+//             {
+//               type: "text",
+//               text: `Error retrieving auth token: ${error instanceof Error ? error.message : String(error)}`
+//             }
+//           ],
+//           isError: true
+//         };
+//       }
+//     });
+//   }
+// );
+
 // Add imageToBase64 tool: convert image file to Base64 string
+
 server.tool(
   "analyzeImageFile",
-  "Given an image path, returns the image file (base64-encoded) and metadata for on-the-fly UI analysis in frontend development.",
+  "Load and analyze previously saved images or existing image files. Use this to access historical screenshots taken with takeScreenshot or any other image files in your project.",
   {
     imagePath: z.string().describe("Path to the image file, project-relative or absolute"),
     projectRoot: z.string().optional().describe("Optional override for project root; defaults to PROJECT_ROOT env or one level up from MCP server")
@@ -523,7 +680,7 @@ const ingestionTasks: Record<string, IngestionTask> = {};
 
 server.tool(
   "ingestFrdDocument",
-  "Takes a path to an FRD document (TXT, MD, CSV, PDF), starts an asynchronous ingestion process into QdrantDB using LlamaIndex, and returns a task ID. Requires GOOGLE_API_KEY env var for Gemini embeddings. For Qdrant Cloud, also requires QDRANT_API_KEY env var or qdrantApiKey parameter.",
+  "Process and index documents (PDF, TXT, MD, CSV) into a vector database for AI retrieval. Returns a task ID to track processing status.",
   {
     documentPath: z.string().describe("Path to the FRD document file (txt, md, csv, pdf)."),
     projectRoot: z.string().optional().describe("Optional override for project root; defaults to PROJECT_ROOT env or one level up from MCP server."),
@@ -702,7 +859,7 @@ server.tool(
 
 server.tool(
   "getFrdIngestionStatus",
-  "Retrieves the status of an FRD document ingestion task.",
+  "Check the status of a document ingestion task using the task ID returned from ingestFrdDocument.",
   {
     taskId: z.string().describe("The ID of the ingestion task."),
   },
@@ -751,94 +908,306 @@ async function loadSwaggerDoc(swaggerSource: string): Promise<any> {
   }
 }
 
-// Function to search for API endpoints matching the pattern
-function findMatchingEndpoints(swagger: any, apiPattern: string): any[] {
+// Enhanced function to search for API endpoints with multiple filtering options
+function findMatchingEndpoints(swagger: any, filters: {
+  apiPattern?: string;
+  tag?: string;
+  method?: string;
+  includeAuth?: boolean;
+  hasParameters?: boolean;
+  maxResults?: number;
+}): any[] {
   const matches: any[] = [];
-  const regex = new RegExp(apiPattern, 'i');
+  const { apiPattern, tag, method, includeAuth, hasParameters, maxResults = 20 } = filters;
   
-  // Handle OpenAPI v3
+  // Create regex if pattern is provided
+  const regex = apiPattern ? new RegExp(apiPattern, 'i') : null;
+  
+  // Handle OpenAPI v3 and Swagger v2
   if (swagger.paths) {
     for (const [path, pathItem] of Object.entries(swagger.paths)) {
-      for (const [method, operation] of Object.entries(pathItem as object)) {
-        if (method === 'parameters') continue; // Skip path parameters
+      for (const [httpMethod, operation] of Object.entries(pathItem as object)) {
+        if (httpMethod === 'parameters') continue; // Skip path parameters
 
         const op = operation as any;
         const fullPath = path;
-        const operationId = op.operationId || `${method} ${path}`;
+        const operationId = op.operationId || `${httpMethod} ${path}`;
         
-        // Check if path or operationId matches the pattern
-        if (regex.test(path) || regex.test(operationId)) {
-          matches.push({
+        // Apply filters
+        let shouldInclude = true;
+        
+        // Pattern matching
+        if (regex && shouldInclude) {
+          shouldInclude = regex.test(path) || regex.test(operationId) || 
+                         (op.summary && regex.test(op.summary)) ||
+                         (op.description && regex.test(op.description));
+        }
+        
+        // Tag filtering
+        if (tag && shouldInclude) {
+          const tags = op.tags || [];
+          shouldInclude = tags.some((t: string) => t.toLowerCase().includes(tag.toLowerCase()));
+        }
+        
+        // HTTP method filtering
+        if (method && shouldInclude) {
+          shouldInclude = httpMethod.toUpperCase() === method.toUpperCase();
+        }
+        
+        // Authentication filtering
+        if (includeAuth && shouldInclude) {
+          const hasSecurity = op.security && op.security.length > 0;
+          shouldInclude = hasSecurity;
+        }
+        
+        // Parameters filtering
+        if (hasParameters && shouldInclude) {
+          const hasParams = (op.parameters && op.parameters.length > 0) || 
+                           op.requestBody || 
+                           path.includes('{');
+          shouldInclude = hasParams;
+        }
+        
+        if (shouldInclude) {
+          const endpoint: any = {
             path: fullPath,
-            method: method.toUpperCase(),
+            method: httpMethod.toUpperCase(),
             operationId,
             summary: op.summary || '',
             description: op.description || '',
+            tags: op.tags || [],
             parameters: op.parameters || [],
             requestBody: op.requestBody || null,
             responses: op.responses || {},
-            servers: op.servers || swagger.servers || []
-          });
+            security: op.security || [],
+            servers: op.servers || swagger.servers || [],
+            // Additional metadata for better understanding
+            hasAuth: !!(op.security && op.security.length > 0),
+            hasParams: !!(op.parameters && op.parameters.length > 0) || !!op.requestBody || path.includes('{'),
+            parameterCount: (op.parameters || []).length,
+            responseCount: Object.keys(op.responses || {}).length
+          };
+          
+          // Add Swagger v2 specific fields
+          if (swagger.swagger && swagger.swagger.startsWith('2.')) {
+            endpoint.consumes = op.consumes || swagger.consumes || [];
+            endpoint.produces = op.produces || swagger.produces || [];
+            endpoint.schemes = op.schemes || swagger.schemes || [];
+            endpoint.host = swagger.host;
+            endpoint.basePath = swagger.basePath || '';
+          }
+          
+          matches.push(endpoint);
+          
+          // Respect maxResults limit
+          if (matches.length >= maxResults) {
+            break;
+          }
+        }
+      }
+      
+      if (matches.length >= maxResults) {
+        break;
+      }
+    }
+  }
+  
+  return matches;
+}
+
+// Function to extract available tags from swagger documentation
+function getAvailableTags(swagger: any): string[] {
+  const tags = new Set<string>();
+  
+  // Get tags from the global tags definition
+  if (swagger.tags && Array.isArray(swagger.tags)) {
+    swagger.tags.forEach((tag: any) => {
+      if (tag.name) tags.add(tag.name);
+    });
+  }
+  
+  // Get tags from individual operations
+  if (swagger.paths) {
+    for (const pathItem of Object.values(swagger.paths)) {
+      for (const [method, operation] of Object.entries(pathItem as object)) {
+        if (method === 'parameters') continue;
+        const op = operation as any;
+        if (op.tags && Array.isArray(op.tags)) {
+          op.tags.forEach((tag: string) => tags.add(tag));
         }
       }
     }
   }
   
-  // Handle Swagger v2
-  if (swagger.swagger && swagger.swagger.startsWith('2.') && swagger.paths) {
-    for (const [path, pathItem] of Object.entries(swagger.paths)) {
-      for (const [method, operation] of Object.entries(pathItem as object)) {
-        if (method === 'parameters') continue;
+  return Array.from(tags).sort();
+}
 
-        const op = operation as any;
-        const fullPath = path;
-        const operationId = op.operationId || `${method} ${path}`;
-        
-        if (regex.test(path) || regex.test(operationId)) {
-          matches.push({
-            path: fullPath,
-            method: method.toUpperCase(),
-            operationId,
-            summary: op.summary || '',
-            description: op.description || '',
-            parameters: op.parameters || [],
-            consumes: op.consumes || swagger.consumes || [],
-            responses: op.responses || {},
-            schemes: op.schemes || swagger.schemes || [],
-            host: swagger.host,
-            basePath: swagger.basePath || ''
-          });
-        }
-      }
+// Function to generate suggested API patterns when no endpoints are found
+function generateApiSuggestions(apiPattern: string, swagger: any): string[] {
+  const suggestions: string[] = [];
+  const pattern = apiPattern.toLowerCase();
+  
+  // Common API patterns and their variations
+  const commonPatterns = [
+    // CRUD operations
+    { pattern: 'get', suggestions: ['GET /{resource}', 'GET /{resource}/{id}', 'GET /{resource}/list'] },
+    { pattern: 'post', suggestions: ['POST /{resource}', 'POST /{resource}/create'] },
+    { pattern: 'put', suggestions: ['PUT /{resource}/{id}', 'PUT /{resource}/update'] },
+    { pattern: 'patch', suggestions: ['PATCH /{resource}/{id}'] },
+    { pattern: 'delete', suggestions: ['DELETE /{resource}/{id}'] },
+    
+    // Common resource patterns
+    { pattern: 'user', suggestions: ['/api/users', '/users/{id}', '/auth/users', '/user/profile'] },
+    { pattern: 'auth', suggestions: ['/auth/login', '/auth/logout', '/auth/register', '/auth/token', '/oauth/token'] },
+    { pattern: 'login', suggestions: ['/auth/login', '/login', '/api/auth/login'] },
+    { pattern: 'token', suggestions: ['/auth/token', '/oauth/token', '/api/token/refresh'] },
+    { pattern: 'profile', suggestions: ['/user/profile', '/api/profile', '/users/me'] },
+    
+    // Data operations
+    { pattern: 'list', suggestions: ['/api/{resource}/list', '/{resource}', '/api/{resource}'] },
+    { pattern: 'search', suggestions: ['/api/search', '/{resource}/search', '/search/{resource}'] },
+    { pattern: 'filter', suggestions: ['/{resource}?filter=', '/api/{resource}/filter'] },
+    { pattern: 'page', suggestions: ['/{resource}?page=', '/{resource}?offset=', '/{resource}?limit='] },
+    
+    // File operations
+    { pattern: 'upload', suggestions: ['/api/files/upload', '/upload', '/media/upload'] },
+    { pattern: 'download', suggestions: ['/api/files/download', '/download/{id}', '/media/{id}'] },
+    { pattern: 'file', suggestions: ['/api/files', '/files/{id}', '/media/files'] },
+    
+    // Common business operations
+    { pattern: 'order', suggestions: ['/api/orders', '/orders/{id}', '/orders/create'] },
+    { pattern: 'payment', suggestions: ['/api/payments', '/payments/process', '/billing/payments'] },
+    { pattern: 'product', suggestions: ['/api/products', '/products/{id}', '/catalog/products'] },
+    { pattern: 'category', suggestions: ['/api/categories', '/categories/{id}', '/products/categories'] },
+    
+    // Admin and management
+    { pattern: 'admin', suggestions: ['/admin/api', '/api/admin', '/admin/{resource}'] },
+    { pattern: 'config', suggestions: ['/api/config', '/admin/config', '/settings/config'] },
+    { pattern: 'setting', suggestions: ['/api/settings', '/user/settings', '/admin/settings'] },
+    
+    // Analytics and reporting
+    { pattern: 'analytics', suggestions: ['/api/analytics', '/analytics/events', '/analytics/reports'] },
+    { pattern: 'report', suggestions: ['/api/reports', '/reports/{type}', '/analytics/reports'] },
+    { pattern: 'metric', suggestions: ['/api/metrics', '/analytics/metrics', '/monitoring/metrics'] },
+    
+    // Health and status
+    { pattern: 'health', suggestions: ['/health', '/api/health', '/status/health'] },
+    { pattern: 'status', suggestions: ['/status', '/api/status', '/health/status'] },
+    { pattern: 'ping', suggestions: ['/ping', '/api/ping', '/health/ping'] }
+  ];
+  
+  // Find matching patterns
+  const matchingPatterns = commonPatterns.filter(p => 
+    pattern.includes(p.pattern) || p.pattern.includes(pattern)
+  );
+  
+  // Add suggestions from matching patterns
+  matchingPatterns.forEach(p => {
+    suggestions.push(...p.suggestions);
+  });
+  
+  // If no specific patterns match, provide general suggestions based on the pattern
+  if (suggestions.length === 0) {
+    // Try to extract potential resource names from the pattern
+    const resourceGuess = pattern.replace(/[^a-z0-9]/g, '');
+    if (resourceGuess) {
+      suggestions.push(
+        `/api/${resourceGuess}`,
+        `/api/${resourceGuess}/{id}`,
+        `/${resourceGuess}`,
+        `/${resourceGuess}/list`,
+        `/api/${resourceGuess}/create`,
+        `/api/${resourceGuess}/search`
+      );
+    }
+    
+    // Generic API patterns
+    suggestions.push(
+      '/api/v1/{resource}',
+      '/api/v2/{resource}',
+      '/{resource}',
+      '/rest/{resource}',
+      '/graphql'
+    );
+  }
+  
+  // Extract actual paths from the swagger doc to provide context-aware suggestions
+  if (swagger.paths) {
+    const allPaths = Object.keys(swagger.paths);
+    
+    // Find paths that contain parts of the search pattern
+    const similarPaths = allPaths.filter(path => {
+      const pathLower = path.toLowerCase();
+      const words = pattern.split(/[^a-z0-9]/);
+      return words.some(word => word.length > 2 && pathLower.includes(word));
+    });
+    
+    if (similarPaths.length > 0) {
+      suggestions.push('');
+      suggestions.push('Similar paths found in your API:');
+      suggestions.push(...similarPaths.slice(0, 10)); // Limit to first 10
+    }
+    
+    // Suggest based on common path segments
+    const pathSegments = allPaths.flatMap(path => 
+      path.split('/').filter(segment => segment && !segment.startsWith('{'))
+    );
+    const uniqueSegments = [...new Set(pathSegments)];
+    
+    const relatedSegments = uniqueSegments.filter(segment => 
+      segment.toLowerCase().includes(pattern) || pattern.includes(segment.toLowerCase())
+    );
+    
+    if (relatedSegments.length > 0) {
+      suggestions.push('');
+      suggestions.push('Related API segments in your documentation:');
+      relatedSegments.slice(0, 8).forEach(segment => {
+        suggestions.push(`/api/${segment}`, `/${segment}`);
+      });
     }
   }
-  return matches;
+  
+  // Remove duplicates and empty strings, keep original order
+  return [...new Set(suggestions.filter(s => s.trim() !== ''))];
 }
 
 // Add the searchApiDocs tool definition
 server.tool(
   "searchApiDocs",
-  "Search API documentation to understand endpoints, parameters, and responses. Provide a pattern to match against API paths or operationIds to find specific endpoints. Use this tool when you need to understand how to construct proper API requests with the correct parameters for pagination, filtering, or other operations as defined in the Swagger/OpenAPI documentation. The tool uses the SWAGGER_URL environment variable to locate the API documentation.",
+  "Search API documentation to find endpoints, parameters, and response schemas. Use this to discover available API endpoints for the features you're implementing. Follow with executeAuthenticatedApiCall to test endpoints with real data.",
   {
-    apiPattern: z.string().describe("Regex pattern to match against API paths or operationIds"),
+    apiPattern: z.string().optional().describe("Regex pattern to match against API paths or operationIds (optional if using other filters)"),
+    tag: z.string().optional().describe("Filter by OpenAPI tag (e.g., 'Admin', 'Customer', 'Vendor Auth', 'Activity')"),
+    method: z.string().optional().describe("Filter by HTTP method (GET, POST, PUT, PATCH, DELETE)"),
     includeSchemas: z.boolean().optional().default(true).describe("Whether to include full schema definitions in the response"),
+    searchType: z.enum(["pattern", "tag", "method", "auth", "parameters", "comprehensive"]).optional().default("comprehensive").describe("Type of search: 'pattern' for regex matching, 'tag' for tag-based, 'method' for HTTP method, 'auth' for auth-required endpoints, 'parameters' for endpoints with query/path params, 'comprehensive' for all matches"),
+    includeAuth: z.boolean().optional().default(false).describe("Only return endpoints that require authentication"),
+    hasParameters: z.boolean().optional().default(false).describe("Only return endpoints that have parameters (query, path, or body)"),
+    maxResults: z.number().optional().default(20).describe("Maximum number of results to return"),
   },
   async (params) => {
     try {
-      const { apiPattern, includeSchemas } = params;
+      const { apiPattern, tag, method, includeAuth, hasParameters, maxResults, includeSchemas } = params;
       const swaggerSource = process.env.SWAGGER_URL;
       
       if (!swaggerSource) {
         throw new Error("SWAGGER_URL environment variable is not set");
       }
       
-      console.log(`Searching for API endpoints matching pattern: ${apiPattern}`);
+      console.log(`Searching for API endpoints with filters:`, { apiPattern, tag, method, includeAuth, hasParameters });
       
       // Load the Swagger documentation
       const swaggerDoc = await loadSwaggerDoc(swaggerSource);
       
-      // Find matching endpoints
-      const matchingEndpoints = findMatchingEndpoints(swaggerDoc, apiPattern);
+      // Find matching endpoints using enhanced filtering
+      const matchingEndpoints = findMatchingEndpoints(swaggerDoc, {
+        apiPattern,
+        tag,
+        method,
+        includeAuth,
+        hasParameters,
+        maxResults
+      });
       
       // If includeSchemas is true, include relevant schema definitions
       if (includeSchemas && matchingEndpoints.length > 0) {
@@ -903,11 +1272,19 @@ server.tool(
       }
       
       if (matchingEndpoints.length === 0) {
+        // Generate suggestions when no endpoints are found
+        const searchTerm = apiPattern || tag || method || "api";
+        const suggestions = generateApiSuggestions(searchTerm, swaggerDoc);
+        
         return {
           content: [
             {
               type: "text",
-              text: `No API endpoints found matching pattern: ${apiPattern}`,
+              text: `No API endpoints found matching filters: ${JSON.stringify({ apiPattern, tag, method, includeAuth, hasParameters })}`,
+            },
+            {
+              type: "text", 
+              text: "\n--- Suggested API Patterns ---\n" + suggestions.join('\n'),
             },
           ],
         };
@@ -929,6 +1306,104 @@ server.tool(
           {
             type: "text",
             text: `Failed to search API documentation: ${errorMessage}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
+server.tool(
+  "discoverApiStructure",
+  "Get an overview of the API structure including available tags, endpoints, and authentication schemes. Use this first when working with a new API to understand what's available before searching for specific endpoints.",
+  {},
+  async () => {
+    try {
+      const swaggerSource = process.env.SWAGGER_URL;
+      
+      if (!swaggerSource) {
+        throw new Error("SWAGGER_URL environment variable is not set");
+      }
+      
+      console.log(`Discovering API structure from ${swaggerSource}`);
+      
+      // Load the Swagger documentation
+      const swaggerDoc = await loadSwaggerDoc(swaggerSource);
+      
+      // Extract API information
+      const structure = {
+        info: {
+          title: swaggerDoc.info?.title || 'Unknown API',
+          version: swaggerDoc.info?.version || 'Unknown',
+          description: swaggerDoc.info?.description || 'No description available'
+        },
+        servers: swaggerDoc.servers || [],
+        tags: getAvailableTags(swaggerDoc),
+        totalEndpoints: 0,
+        endpointsByMethod: {} as { [key: string]: number },
+        endpointsByTag: {} as { [key: string]: number },
+        authenticationSchemes: {},
+        hasParameters: 0,
+        hasAuthentication: 0
+      };
+      
+      // Extract authentication schemes
+      if (swaggerDoc.components?.securitySchemes) {
+        structure.authenticationSchemes = swaggerDoc.components.securitySchemes;
+      } else if (swaggerDoc.securityDefinitions) {
+        structure.authenticationSchemes = swaggerDoc.securityDefinitions;
+      }
+      
+      // Count endpoints and analyze structure
+      if (swaggerDoc.paths) {
+        for (const [path, pathItem] of Object.entries(swaggerDoc.paths)) {
+          for (const [method, operation] of Object.entries(pathItem as object)) {
+            if (method === 'parameters') continue;
+            
+            const op = operation as any;
+            structure.totalEndpoints++;
+            
+            // Count by HTTP method
+            const httpMethod = method.toUpperCase();
+            structure.endpointsByMethod[httpMethod] = (structure.endpointsByMethod[httpMethod] || 0) + 1;
+            
+            // Count by tags
+            if (op.tags && Array.isArray(op.tags)) {
+              op.tags.forEach((tag: string) => {
+                structure.endpointsByTag[tag] = (structure.endpointsByTag[tag] || 0) + 1;
+              });
+            }
+            
+            // Count endpoints with parameters
+            if ((op.parameters && op.parameters.length > 0) || op.requestBody || path.includes('{')) {
+              structure.hasParameters++;
+            }
+            
+            // Count endpoints with authentication
+            if (op.security && op.security.length > 0) {
+              structure.hasAuthentication++;
+            }
+          }
+        }
+      }
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(structure, null, 2),
+          },
+        ],
+      };
+    } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`Error in discoverApiStructure tool: ${errorMessage}`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Failed to discover API structure: ${errorMessage}`,
           },
         ],
         isError: true,

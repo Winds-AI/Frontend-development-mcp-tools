@@ -1,6 +1,11 @@
 # Browser Tools MCP Extension
 
-Browser Tools MCP Extension enables AI tools to interact with your browser for enhanced development capabilities. This document provides an overview of the available tools within the MCP server. For setup instructions, please refer to `SETUP_GUIDE.md`.
+Browser 2.  **`takeScreenshot`**
+*   **Description**: Take a screenshot of the current browser tab and return the image data for immediate analysis. The screenshot is also saved to disk for later access via analyzeImageFile.
+    *   **Parameters**: 
+        *   `filename` (string, optional): Optional custom filename for the screenshot (without extension). If not provided, uses timestamp-based naming.
+        *   `returnImageData` (boolean, optional, default: true): Whether to return the base64 image data in the response for immediate analysis.
+    *   **Functionality**: Captures a screenshot via the Chrome extension and returns both file confirmation and base64 image data (if requested). Enables immediate analysis workflows and persistent storage for autonomous agent feedback loops.s MCP Extension enables AI tools to interact with your browser for enhanced development capabilities. This document provides an overview of the available tools within the MCP server. For setup instructions, please refer to `SETUP_GUIDE.md`.
 
 ## Motivation
 
@@ -48,7 +53,7 @@ The following tools are available through the Browser Tools MCP server:
     *   **Functionality**: This tool queries the `browser-connector` server (at `http://<host>:<port>/selected-element`) to get details of the element last inspected or selected by the user in the Chrome DevTools. It returns a JSON string containing information about the selected element.
 
 4.  **`analyzeImageFile`**
-    *   **Description**: Reads an image file from the local filesystem, encodes it to base64, and returns it along with metadata. This is useful for on-the-fly UI analysis or when an image needs to be processed or displayed by an AI.
+    *   **Description**: Load and analyze previously saved images or existing image files. Use this to access historical screenshots taken with takeScreenshot or any other image files in your project.
     *   **Parameters**:
         *   `imagePath` (string, required): The path to the image file. This can be an absolute path or a path relative to the project root.
         *   `projectRoot` (string, optional): An optional path to override the default project root directory. If not provided, it uses the `PROJECT_ROOT` environment variable or the directory of the MCP server.
@@ -89,4 +94,53 @@ The following tools are available through the Browser Tools MCP server:
         *   Matches the `apiPattern` against the endpoint path and its `operationId`.
         *   For matching endpoints, it extracts details like the HTTP method, summary, description, parameters, request body, and responses.
         *   If `includeSchemas` is true, it resolves and embeds any referenced JSON schemas directly into the output for the matching endpoints.
+
+8.  **`executeAuthenticatedApiCall`** *(NEW - Unified API Testing Tool)*
+    *   **Description**: Automatically retrieves authentication tokens from browser session and executes authenticated API calls. This eliminates token retrieval hallucination and ensures consistent API testing with real authentication.
+    *   **Parameters**:
+        *   `endpoint` (string, required): The API endpoint path (e.g., '/api/users', '/auth/profile'). Combined with API_BASE_URL from environment.
+        *   `method` (enum, optional, default: "GET"): HTTP method for the API call (GET, POST, PUT, PATCH, DELETE).
+        *   `requestBody` (any, optional): Request body for POST/PUT/PATCH requests (automatically JSON stringified).
+        *   `queryParams` (object, optional): Query parameters as key-value pairs.
+        *   `additionalHeaders` (object, optional): Additional headers to include in the request.
+        *   `includeResponseDetails` (boolean, optional, default: true): Whether to include detailed response analysis (status, headers, timing).
+    *   **Environment Variables Required**:
+        *   `AUTH_ORIGIN`: The origin where your app is running (e.g., "http://localhost:5173")
+        *   `AUTH_STORAGE_TYPE`: Where the auth token is stored ("cookie", "localStorage", or "sessionStorage")
+        *   `AUTH_TOKEN_KEY`: The key name for the auth token (e.g., "authToken", "accessToken")
+        *   `API_BASE_URL`: Your API base URL (e.g., "https://api.example.com")
+    *   **Functionality**:
+        *   Automatically retrieves auth token from browser session using predefined environment configuration
+        *   Constructs full API URL and adds query parameters if provided
+        *   Makes authenticated API request with proper Authorization header
+        *   Returns structured response with actual API data and optional detailed metrics
+        *   Eliminates manual token handling and curl command execution
+
+9.  **`getAccessToken`** *(DEPRECATED)*
+    *   **Description**: Legacy tool for manual token retrieval. Use `executeAuthenticatedApiCall` instead for better reliability.
+    *   **Status**: Kept for backward compatibility but deprecated in favor of the unified approach.
         *   Returns a JSON string containing an array of the matching API endpoint details.
+
+## Environment Variables
+
+The server supports several environment variables for configuration:
+
+### API Testing & Authentication
+- `AUTH_ORIGIN`: Origin where your app runs (e.g., "http://localhost:5173")
+- `AUTH_STORAGE_TYPE`: Token storage location ("cookie", "localStorage", "sessionStorage") 
+- `AUTH_TOKEN_KEY`: Token key name (e.g., "authToken", "accessToken")
+- `API_BASE_URL`: Your API base URL (e.g., "https://api.example.com")
+
+### Document & API Discovery
+- `SWAGGER_URL`: Swagger/OpenAPI JSON URL for API documentation search
+- `PROJECT_ROOT`: Project root directory for file operations and image analysis
+
+### Screenshot Management
+- `SCREENSHOT_STORAGE_PATH`: Custom directory for screenshot storage (defaults to Downloads folder)
+
+### Vector Database (for FRD document ingestion)
+- `GOOGLE_API_KEY`: Google API key for embeddings
+- `QDRANT_API_KEY`: Qdrant vector database API key  
+- `QDRANT_URL`: Qdrant server URL (defaults to http://localhost:6333)
+
+See `SETUP_GUIDE.md` for detailed configuration instructions.
