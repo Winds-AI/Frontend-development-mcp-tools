@@ -35,10 +35,14 @@ const server = new McpServer({
   version: "1.2.0",
 });
 
-// Track the discovered server connection
+// Track the discovered server connection - enhanced for autonomous operation
 let discoveredHost = "127.0.0.1";
 let discoveredPort = 3025;
 let serverDiscovered = false;
+let lastDiscoveryAttempt = 0;
+let discoveryRetryCount = 0;
+const MAX_DISCOVERY_RETRIES = 5;
+const DISCOVERY_RETRY_DELAY = 2000; // 2 seconds between retries
 
 // Function to get the default port from environment variable or default
 function getDefaultServerPort(): number {

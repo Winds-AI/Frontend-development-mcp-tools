@@ -543,19 +543,19 @@ async function testConnection(host, port) {
   }
 }
 
-// Schedule a reconnect attempt if server isn't found
+// Schedule a reconnect attempt if server isn't found - optimized for autonomous operation
 function scheduleReconnectAttempt() {
   // Clear any existing reconnect timeout
   if (reconnectAttemptTimeout) {
     clearTimeout(reconnectAttemptTimeout);
   }
 
-  // Schedule a reconnect attempt in 30 seconds
+  // Reduced reconnect interval for autonomous operation - faster recovery
   reconnectAttemptTimeout = setTimeout(() => {
-    console.log("Attempting to reconnect to server...");
+    console.log("Attempting to reconnect to server (autonomous operation)...");
     // Only show minimal UI during auto-reconnect
     discoverServer(true);
-  }, 30000); // 30 seconds
+  }, 15000); // Reduced from 30 to 15 seconds for faster autonomous recovery
 }
 
 // Helper function to try connecting to a server
@@ -566,11 +566,11 @@ async function tryServerConnection(host, port) {
       return false;
     }
 
-    // Create a local timeout that won't abort the entire discovery process
+    // Reduced timeout for autonomous operation - faster discovery
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, 500); // 500ms timeout for each connection attempt
+    }, 300); // Reduced from 500ms to 300ms for faster autonomous discovery
 
     try {
       // Use identity endpoint for validation
@@ -681,24 +681,22 @@ async function discoverServer(quietMode = false) {
     });
 
     // Common IPs to try (in order of likelihood)
-    const hosts = ["localhost", "127.0.0.1"];
+    // Optimized hosts for autonomous operation - prioritize localhost
+    const hosts = ["127.0.0.1", "localhost"];
 
-    // Add the current configured host if it's not already in the list
+    // Only add the current configured host if it's not already in the list and not the wildcard
     if (
       !hosts.includes(settings.serverHost) &&
-      settings.serverHost !== "0.0.0.0"
+      settings.serverHost !== "0.0.0.0" &&
+      settings.serverHost !== ""
     ) {
       hosts.unshift(settings.serverHost); // Put at the beginning for priority
     }
 
-    // Add common local network IPs
-    const commonLocalIps = ["192.168.0.", "192.168.1.", "10.0.0.", "10.0.1."];
-    for (const prefix of commonLocalIps) {
-      for (let i = 1; i <= 5; i++) {
-        // Reduced from 10 to 5 for efficiency
-        hosts.push(`${prefix}${i}`);
-      }
-    }
+    // For autonomous operation, limit network scanning to essential IPs only
+    // Only scan common development IPs, not entire ranges
+    const essentialLocalIps = ["192.168.1.1", "192.168.0.1", "10.0.0.1"];
+    hosts.push(...essentialLocalIps);
 
     // Build port list in a smart order:
     // 1. Start with current configured port

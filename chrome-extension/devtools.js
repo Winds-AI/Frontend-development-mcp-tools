@@ -733,12 +733,14 @@ chrome.devtools.panels.elements.onSelectionChanged.addListener(() => {
   captureAndSendElement();
 });
 
-// WebSocket connection management
+// WebSocket connection management - optimized for autonomous operation
 let ws = null;
 let wsReconnectTimeout = null;
 let heartbeatInterval = null;
-const WS_RECONNECT_DELAY = 5000; // 5 seconds
-const HEARTBEAT_INTERVAL = 30000; // 30 seconds
+const WS_RECONNECT_DELAY = 3000; // Reduced to 3 seconds for faster autonomous recovery
+const HEARTBEAT_INTERVAL = 25000; // Match server interval
+const MAX_RECONNECT_ATTEMPTS = 10; // Increased for autonomous reliability
+let reconnectAttempts = 0;
 // Add a flag to track if we need to reconnect after identity validation
 let reconnectAfterValidation = false;
 // Track if we're intentionally closing the connection
@@ -748,7 +750,13 @@ let intentionalClosure = false;
 function sendHeartbeat() {
   if (ws && ws.readyState === WebSocket.OPEN) {
     console.log("Chrome Extension: Sending WebSocket heartbeat");
-    ws.send(JSON.stringify({ type: "heartbeat" }));
+    ws.send(JSON.stringify({ 
+      type: "heartbeat",
+      timestamp: Date.now(),
+      tabId: currentTabId
+    }));
+  } else if (ws) {
+    console.warn(`Chrome Extension: Cannot send heartbeat - WebSocket state: ${ws.readyState}`);
   }
 }
 
@@ -807,6 +815,9 @@ async function setupWebSocket() {
 
     ws.onopen = () => {
       console.log(`Chrome Extension: WebSocket connected to ${wsUrl}`);
+      
+      // Reset reconnection attempts on successful connection
+      reconnectAttempts = 0;
 
       // Start heartbeat to keep connection alive
       heartbeatInterval = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
@@ -895,9 +906,7 @@ async function setupWebSocket() {
 
     ws.onerror = (error) => {
       console.error(`Chrome Extension: WebSocket error for ${wsUrl}:`, error);
-    };
-
-    ws.onclose = (event) => {
+    };    ws.onclose = (event) => {
       console.log(`Chrome Extension: WebSocket closed for ${wsUrl}:`, event);
 
       // Stop heartbeat
@@ -914,28 +923,40 @@ async function setupWebSocket() {
         return;
       }
 
-      // Only attempt to reconnect if the closure wasn't intentional
-      // Code 1000 (Normal Closure) and 1001 (Going Away) are normal closures
-      // Code 1005 often happens with clean closures in Chrome
+      // Enhanced reconnection logic for autonomous operation
       const isAbnormalClosure = !(event.code === 1000 || event.code === 1001);
-
+      
       // Check if this was an abnormal closure or if we need to reconnect after validation
       if (isAbnormalClosure || reconnectAfterValidation) {
-        console.log(
-          `Chrome Extension: Will attempt to reconnect WebSocket (closure code: ${event.code})`
-        );
-
-        // Try to reconnect after delay
-        wsReconnectTimeout = setTimeout(() => {
+        reconnectAttempts++;
+        
+        if (reconnectAttempts <= MAX_RECONNECT_ATTEMPTS) {
+          const delay = Math.min(WS_RECONNECT_DELAY * Math.pow(1.5, reconnectAttempts - 1), 30000); // Exponential backoff, cap at 30s
+          
           console.log(
-            `Chrome Extension: Attempting to reconnect WebSocket to ${wsUrl}`
+            `Chrome Extension: Will attempt to reconnect WebSocket (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${delay}ms (closure code: ${event.code})`
           );
-          setupWebSocket();
-        }, WS_RECONNECT_DELAY);
+
+          // Try to reconnect after delay
+          wsReconnectTimeout = setTimeout(() => {
+            console.log(
+              `Chrome Extension: Attempting to reconnect WebSocket to ${wsUrl} (attempt ${reconnectAttempts})`
+            );
+            setupWebSocket();
+          }, delay);
+        } else {
+          console.error(
+            `Chrome Extension: Max reconnection attempts (${MAX_RECONNECT_ATTEMPTS}) reached, giving up`
+          );
+          // Reset attempts for potential future manual reconnection
+          reconnectAttempts = 0;
+        }
       } else {
         console.log(
           `Chrome Extension: Normal WebSocket closure, not reconnecting automatically`
         );
+        // Reset attempts for clean state
+        reconnectAttempts = 0;
       }
     };
 
@@ -960,7 +981,15 @@ async function setupWebSocket() {
           }
         }
 
-        if (message.type === "heartbeat-response") {
+        if (message.type === "heartbeat") {
+          // Enhanced heartbeat response for autonomous operation debugging
+          console.log(`Chrome Extension: Received heartbeat from server (connectionId: ${message.connectionId || 'unknown'})`);
+          ws.send(JSON.stringify({ 
+            type: "heartbeat-response",
+            timestamp: Date.now(),
+            connectionId: message.connectionId
+          }));
+        } else if (message.type === "heartbeat-response") {
           // Just a heartbeat response, no action needed
           // Uncomment the next line for debug purposes only
           // console.log("Chrome Extension: Received heartbeat response");

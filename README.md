@@ -1,11 +1,20 @@
 # Browser Tools MCP Extension
 
-Browser 2.  **`takeScreenshot`**
-*   **Description**: Take a screenshot of the current browser tab and return the image data for immediate analysis. The screenshot is also saved to disk for later access via analyzeImageFile.
-    *   **Parameters**: 
-        *   `filename` (string, optional): Optional custom filename for the screenshot (without extension). If not provided, uses timestamp-based naming.
-        *   `returnImageData` (boolean, optional, default: true): Whether to return the base64 image data in the response for immediate analysis.
-    *   **Functionality**: Captures a screenshot via the Chrome extension and returns both file confirmation and base64 image data (if requested). Enables immediate analysis workflows and persistent storage for autonomous agent feedback loops.s MCP Extension enables AI tools to interact with your browser for enhanced development capabilities. This document provides an overview of the available tools within the MCP server. For setup instructions, please refer to `SETUP_GUIDE.md`.
+**🚀 Optimized for Autonomous AI-Powered Frontend Development Workflows**
+
+Browser Tools MCP Extension enables AI tools to interact with your browser for enhanced development capabilities. This document provides an overview of the available tools within the MCP server. For setup instructions, please refer to `SETUP_GUIDE.md`.
+
+## ✨ Version 1.2.0 - Enhanced Connection Stability
+
+**🎯 Major Updates for Autonomous Operation:**
+- **Enhanced WebSocket stability** with intelligent heartbeat monitoring (25s intervals)
+- **Fast recovery** from connection drops (3-15 second reconnection)
+- **Individual request tracking** prevents callback conflicts during autonomous workflows
+- **Network-tolerant timeouts** and exponential backoff for unreliable connections
+- **Connection health monitoring** API for autonomous operation oversight
+- **Streamlined discovery** with essential IP scanning for faster server detection
+
+**Perfect for extended AI development sessions where connection stability is critical!**
 
 ## Motivation
 
@@ -42,10 +51,13 @@ The following tools are available through the Browser Tools MCP server:
         *   `limit` (number, optional, default: `20`): The maximum number of results to return.
     *   **Functionality**: This tool constructs a query based on the provided parameters and fetches network request details from the `browser-connector` server (typically at `http://<host>:<port>/network-request-details`). It then returns the filtered and ordered list of network interactions.
 
-2.  **`takeScreenshot`**
-    *   **Description**: Takes a screenshot of the current active browser tab. This can be used to understand the current UI state.
-    *   **Parameters**: None.
-    *   **Functionality**: It sends a request to the `browser-connector` server (at `http://<host>:<port>/screenshot`). The server interacts with the Chrome extension to capture the screenshot of the active tab. The tool returns the screenshot data, typically as a base64 encoded image string, or an error message if the screenshot fails.
+2.  **`takeScreenshot`** ⭐ **ENHANCED**
+    *   **Description**: Take a screenshot of the current browser tab and return the image data for immediate analysis. The screenshot is automatically organized by project and URL structure in a centralized directory system.
+    *   **Parameters**: 
+        *   `filename` (string, optional): Optional custom filename for the screenshot (without extension). If not provided, uses timestamp-based naming.
+        *   `returnImageData` (boolean, optional, default: true): Whether to return the base64 image data in the response for immediate analysis.
+        *   `projectName` (string, optional): Optional project name to override automatic project detection. Screenshots will be organized under this project folder.
+    *   **Functionality**: Captures a screenshot via the Chrome extension with enhanced connection stability. Features 15-second timeout for autonomous operation reliability and organized storage system. Returns both file confirmation and base64 image data (if requested) for immediate analysis workflows.
 
 3.  **`getSelectedElement`**
     *   **Description**: Retrieves information about the HTML element currently selected by the user in the browser's DevTools (if any).
@@ -121,6 +133,42 @@ The following tools are available through the Browser Tools MCP server:
     *   **Status**: Kept for backward compatibility but deprecated in favor of the unified approach.
         *   Returns a JSON string containing an array of the matching API endpoint details.
 
+## 🤖 Autonomous Operation Features
+
+### Enhanced Connection Stability
+- **Intelligent Heartbeat System**: 25-second intervals with 60-second timeouts
+- **Fast Recovery**: 3-15 second reconnection times for minimal workflow disruption
+- **Exponential Backoff**: Smart retry logic with up to 10 attempts
+- **Individual Request Tracking**: Prevents callback conflicts during concurrent operations
+- **Connection Health Monitoring**: Real-time status endpoint at `/connection-health`
+
+### Autonomous AI Workflow Optimizations
+- **Extended Screenshot Timeouts**: 15-second timeouts for network tolerance
+- **Enhanced Error Handling**: Detailed connection state reporting for debugging
+- **Streamlined Discovery**: Essential IP scanning (300ms timeouts) for faster server detection
+- **Background Retry Logic**: 5 retry attempts with server validation
+- **Network Tolerance**: Increased timeouts for unreliable network conditions
+
+### Connection Health API
+Access real-time connection status at: `http://localhost:3026/connection-health`
+
+```json
+{
+  "connected": true,
+  "healthy": true,
+  "connectionId": "conn_1234567890_abc123",
+  "lastHeartbeat": 1701234567890,
+  "timeSinceLastHeartbeat": 5000,
+  "heartbeatTimeout": 60000,
+  "heartbeatInterval": 25000,
+  "pendingScreenshots": 0,
+  "uptime": 3600.45,
+  "timestamp": "2024-12-01T10:30:00.000Z"
+}
+```
+
+See `SETUP_GUIDE.md` for detailed configuration instructions and `AUTONOMOUS_OPERATION_TESTING_REPORT.md` for testing results.
+
 ## Environment Variables
 
 The server supports several environment variables for configuration:
@@ -143,4 +191,6 @@ The server supports several environment variables for configuration:
 - `QDRANT_API_KEY`: Qdrant vector database API key  
 - `QDRANT_URL`: Qdrant server URL (defaults to http://localhost:6333)
 
-See `SETUP_GUIDE.md` for detailed configuration instructions.
+### Connection Stability & Autonomous Operation
+- `BROWSER_TOOLS_HOST`: Server host override (defaults to "127.0.0.1")
+- `BROWSER_TOOLS_PORT`: Server port override (defaults to 3025)

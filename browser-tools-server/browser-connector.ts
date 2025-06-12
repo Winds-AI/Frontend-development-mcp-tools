@@ -632,6 +632,13 @@ export class BrowserConnector {
   private app: express.Application;
   private server: any;
   private urlRequestCallbacks: Map<string, (url: string) => void> = new Map();
+  
+  // Connection health monitoring - optimized for autonomous operation
+  private lastHeartbeatTime: number = 0;
+  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private readonly HEARTBEAT_INTERVAL = 25000; // Reduced to 25 seconds for more frequent checks
+  private readonly HEARTBEAT_TIMEOUT = 60000; // Increased to 60 seconds for network tolerance
+  private connectionId: string = ""; // Track connection identity for better debugging
 
   constructor(app: express.Application, server: any) {
     this.app = app;
@@ -667,6 +674,21 @@ export class BrowserConnector {
       }
     );
 
+    // Add connection health endpoint for autonomous operation monitoring
+    this.app.get("/connection-health", (req, res) => {
+      const status = this.getConnectionStatus();
+      const isHealthy = this.hasActiveConnection() && 
+                       (Date.now() - this.lastHeartbeatTime) < this.HEARTBEAT_TIMEOUT;
+      
+      res.json({
+        ...status,
+        healthy: isHealthy,
+        pendingScreenshots: screenshotCallbacks.size,
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString()
+      });
+    });
+
     // Add unified authenticated API call endpoint
     this.app.post(
       "/authenticated-api-call",
@@ -700,12 +722,33 @@ export class BrowserConnector {
     );
 
     this.wss.on("connection", (ws: WebSocket) => {
-      console.log("Chrome extension connected via WebSocket");
+      // Generate unique connection ID for debugging autonomous operation
+      this.connectionId = `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      console.log(`Chrome extension connected via WebSocket [${this.connectionId}]`);
+      
+      // Close any existing connection gracefully
+      if (this.activeConnection) {
+        console.log(`Closing existing connection for new one [${this.connectionId}]`);
+        this.activeConnection.close(1000, "New connection established");
+      }
+      
       this.activeConnection = ws;
+      this.lastHeartbeatTime = Date.now();
+      
+      // Start heartbeat monitoring
+      this.startHeartbeatMonitoring();
 
       ws.on("message", (message: string | Buffer | ArrayBuffer | Buffer[]) => {
         try {
           const data = JSON.parse(message.toString());
+          
+          // Handle heartbeat responses
+          if (data.type === "heartbeat-response") {
+            this.lastHeartbeatTime = Date.now();
+            console.log("Browser Connector: Received heartbeat response from extension");
+            return;
+          }
+          
           // Log message without the base64 data
           console.log("Received WebSocket message:", {
             ...data,
@@ -761,37 +804,62 @@ export class BrowserConnector {
               currentTabId = data.tabId;
             }
           }
-          // Handle screenshot response
+          // Handle screenshot response - enhanced for autonomous operation
           if (data.type === "screenshot-data" && data.data) {
-            console.log("Received screenshot data");
+            console.log(`Received screenshot data [${this.connectionId}]`);
             console.log("Screenshot path from extension:", data.path);
             console.log("Auto-paste setting from extension:", data.autoPaste);
-            // Get the most recent callback since we're not using requestId anymore
-            const callbacks = Array.from(screenshotCallbacks.values());
-            if (callbacks.length > 0) {
-              const callback = callbacks[0];
-              console.log("Found callback, resolving promise");
-              // Pass both the data, path and autoPaste to the resolver
-              callback.resolve({
-                data: data.data,
-                path: data.path,
-                autoPaste: data.autoPaste,
-              });
-              screenshotCallbacks.clear(); // Clear all callbacks
+            
+            // Find the specific callback for this request ID (if provided)
+            if (data.requestId && screenshotCallbacks.has(data.requestId)) {
+              const callback = screenshotCallbacks.get(data.requestId);
+              console.log(`Found specific callback for requestId: ${data.requestId} [${this.connectionId}]`);
+              if (callback) {
+                callback.resolve({
+                  data: data.data,
+                  path: data.path,
+                  autoPaste: data.autoPaste,
+                });
+                screenshotCallbacks.delete(data.requestId); // Only delete this specific callback
+              }
             } else {
-              console.log("No callbacks found for screenshot");
+              // Fallback: Get the most recent callback if no requestId (legacy support)
+              const callbacks = Array.from(screenshotCallbacks.entries());
+              if (callbacks.length > 0) {
+                const [oldestRequestId, callback] = callbacks[0]; // Use oldest pending callback
+                console.log(`Using oldest callback as fallback: ${oldestRequestId} [${this.connectionId}]`);
+                callback.resolve({
+                  data: data.data,
+                  path: data.path,
+                  autoPaste: data.autoPaste,
+                });
+                screenshotCallbacks.delete(oldestRequestId); // Only delete this specific callback
+              } else {
+                console.log(`No callbacks found for screenshot data [${this.connectionId}]`);
+              }
             }
           }
-          // Handle screenshot error
+          // Handle screenshot error - enhanced for autonomous operation
           else if (data.type === "screenshot-error") {
-            console.log("Received screenshot error:", data.error);
-            const callbacks = Array.from(screenshotCallbacks.values());
-            if (callbacks.length > 0) {
-              const callback = callbacks[0];
-              callback.reject(
-                new Error(data.error || "Screenshot capture failed")
-              );
-              screenshotCallbacks.clear(); // Clear all callbacks
+            console.log(`Received screenshot error [${this.connectionId}]:`, data.error);
+            
+            // Find the specific callback for this request ID (if provided)
+            if (data.requestId && screenshotCallbacks.has(data.requestId)) {
+              const callback = screenshotCallbacks.get(data.requestId);
+              console.log(`Found specific error callback for requestId: ${data.requestId} [${this.connectionId}]`);
+              if (callback) {
+                callback.reject(new Error(data.error || "Screenshot capture failed"));
+                screenshotCallbacks.delete(data.requestId); // Only delete this specific callback
+              }
+            } else {
+              // Fallback: Use most recent callback if no requestId
+              const callbacks = Array.from(screenshotCallbacks.entries());
+              if (callbacks.length > 0) {
+                const [oldestRequestId, callback] = callbacks[0];
+                console.log(`Using oldest error callback as fallback: ${oldestRequestId} [${this.connectionId}]`);
+                callback.reject(new Error(data.error || "Screenshot capture failed"));
+                screenshotCallbacks.delete(oldestRequestId); // Only delete this specific callback
+              }
             }
           } else {
             console.log("Unhandled message type:", data.type);
@@ -801,11 +869,16 @@ export class BrowserConnector {
         }
       });
 
-      ws.on("close", () => {
-        console.log("Chrome extension disconnected");
+      ws.on("close", (code: number, reason: Buffer) => {
+        const reasonStr = reason.toString();
+        console.log(`Chrome extension disconnected [${this.connectionId}] - Code: ${code}, Reason: ${reasonStr}`);
+        
         if (this.activeConnection === ws) {
-          this.activeConnection = null;
+          this.handleConnectionClose();
         }
+        
+        // Log detailed disconnection info for autonomous operation debugging
+        console.log(`Connection closure details - Normal: ${code === 1000 || code === 1001}, Connection ID: ${this.connectionId}`);
       });
     });
 
@@ -996,9 +1069,132 @@ export class BrowserConnector {
     }
   }
 
-  // Public method to check if there's an active connection
+  // Connection health monitoring methods
+  private startHeartbeatMonitoring() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+    }
+
+    this.heartbeatInterval = setInterval(() => {
+      if (!this.activeConnection || this.activeConnection.readyState !== WebSocket.OPEN) {
+        console.log("WebSocket connection lost, clearing heartbeat monitor");
+        this.stopHeartbeatMonitoring();
+        return;
+      }
+
+      const now = Date.now();
+      const timeSinceLastHeartbeat = now - this.lastHeartbeatTime;
+
+      // Check if connection is healthy
+      if (timeSinceLastHeartbeat > this.HEARTBEAT_TIMEOUT) {
+        console.warn(`Connection appears unhealthy [${this.connectionId}] - no heartbeat response received in ${timeSinceLastHeartbeat}ms (timeout: ${this.HEARTBEAT_TIMEOUT}ms)`);
+        
+        // Enhanced callback cleanup for autonomous operation
+        const callbacks = Array.from(screenshotCallbacks.entries());
+        console.log(`Rejecting ${callbacks.length} pending screenshot callbacks due to heartbeat timeout [${this.connectionId}]`);
+        
+        callbacks.forEach(([requestId, callback], index) => {
+          callback.reject(new Error(`Connection timeout - heartbeat failed [${this.connectionId}] - request ${requestId} (${index + 1}/${callbacks.length})`));
+        });
+        screenshotCallbacks.clear();
+        
+        // Close the unhealthy connection
+        try {
+          console.log(`Closing unhealthy connection [${this.connectionId}] due to heartbeat timeout`);
+          this.activeConnection?.close(1001, "Heartbeat timeout");
+        } catch (error) {
+          console.error(`Error closing unhealthy connection [${this.connectionId}]:`, error);
+        }
+        
+        this.handleConnectionClose();
+      } else {
+        // Send heartbeat
+        this.sendHeartbeat();
+      }
+    }, this.HEARTBEAT_INTERVAL);
+  }
+
+  private stopHeartbeatMonitoring() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  }
+
+  private sendHeartbeat() {
+    if (this.activeConnection && this.activeConnection.readyState === WebSocket.OPEN) {
+      try {
+        // Add connection ID to heartbeat for debugging autonomous operation
+        console.log(`Browser Connector: Sending heartbeat to Chrome extension [${this.connectionId}]`);
+        this.activeConnection.send(JSON.stringify({ 
+          type: "heartbeat",
+          connectionId: this.connectionId,
+          timestamp: Date.now()
+        }));
+      } catch (error) {
+        console.error(`Error sending heartbeat [${this.connectionId}]:`, error);
+        this.handleConnectionClose();
+      }
+    }
+  }  private handleConnectionClose() {
+    const connectionInfo = this.connectionId || "unknown";
+    console.log(`Handling connection close event [${connectionInfo}]`);
+    
+    if (this.activeConnection) {
+      this.activeConnection = null;
+    }
+    
+    this.stopHeartbeatMonitoring();
+    
+    // Enhanced callback cleanup for autonomous operation reliability
+    const callbacks = Array.from(screenshotCallbacks.values());
+    console.log(`Cleaning up ${callbacks.length} pending screenshot callbacks due to connection loss [${connectionInfo}]`);
+    
+    callbacks.forEach((callback, index) => {
+      callback.reject(new Error(`WebSocket connection lost [${connectionInfo}] - callback ${index + 1}/${callbacks.length}`));
+    });
+    screenshotCallbacks.clear();
+
+    console.log(`WebSocket connection closed [${connectionInfo}] - waiting for reconnection`);
+    
+    // Reset connection ID
+    this.connectionId = "";
+  }
+
+  // Method to get detailed connection status for autonomous operation debugging
+  public getConnectionStatus() {
+    return {
+      connected: this.activeConnection !== null,
+      readyState: this.activeConnection?.readyState,
+      readyStateText: this.getReadyStateText(this.activeConnection?.readyState),
+      lastHeartbeat: this.lastHeartbeatTime,
+      timeSinceLastHeartbeat: Date.now() - this.lastHeartbeatTime,
+      connectionId: this.connectionId,
+      heartbeatTimeout: this.HEARTBEAT_TIMEOUT,
+      heartbeatInterval: this.HEARTBEAT_INTERVAL
+    };
+  }
+  
+  private getReadyStateText(state?: number): string {
+    switch (state) {
+      case 0: return "CONNECTING";
+      case 1: return "OPEN";
+      case 2: return "CLOSING";
+      case 3: return "CLOSED";
+      default: return "UNKNOWN";
+    }
+  }
+
+  // Enhanced method to check connection health for autonomous operation
   public hasActiveConnection(): boolean {
-    return this.activeConnection !== null;
+    const isActive = this.activeConnection !== null && 
+                     this.activeConnection.readyState === WebSocket.OPEN;
+    
+    if (!isActive && this.connectionId) {
+      console.log(`Connection health check failed [${this.connectionId}] - State: ${this.activeConnection?.readyState || 'null'}`);
+    }
+    
+    return isActive;
   }
 
   // Add new endpoint for programmatic screenshot capture using unified service
@@ -1043,20 +1239,20 @@ export class BrowserConnector {
           Array.from(screenshotCallbacks.keys())
         );
 
-        // Set timeout to clean up if we don't get a response
+        // Set timeout to clean up if we don't get a response - increased for autonomous operation
         setTimeout(() => {
           if (screenshotCallbacks.has(requestId)) {
             console.log(
-              `Browser Connector: Screenshot capture timed out for requestId: ${requestId}`
+              `Browser Connector: Screenshot capture timed out for requestId: ${requestId} [${this.connectionId}]`
             );
             screenshotCallbacks.delete(requestId);
             reject(
               new Error(
-                "Screenshot capture timed out - no response from Chrome extension"
+                `Screenshot capture timed out - no response from Chrome extension [${this.connectionId}] after 15 seconds`
               )
             );
           }
-        }, 10000);
+        }, 15000); // Increased from 10 to 15 seconds for autonomous operation stability
       });
 
       // Send screenshot request to extension
