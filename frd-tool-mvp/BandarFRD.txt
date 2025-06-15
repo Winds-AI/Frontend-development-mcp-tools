@@ -1,0 +1,953 @@
+﻿This document is a confidential property of Three-rrific Adventure Private ltd and Bandar.co.in.  This document should be treated in accordance with the non-disclosure agreement signed and can be shared only on need-to-know basis with approvals from Directors of Three-rrific Adventures Private Ltd. founders@bandar.co.in
+
+
+offline Contents
+Introduction        2
+Vendor Mobile Application        3
+Welcome and Sign-up/Sign-In Screen        3
+Vendor Registration (Sign-up Page)        3
+Vendor Homepage/Vendor Profile:        5
+Manage Bookings (Upcoming and Past bookings)        8
+Add an Adventure / List your Adventure with Bandar/Manage your activity/Delete Activity        10
+Update Inventory/Reserve a slot:        13
+Business Analytics        14
+Promotions (Business Promotions on Bandar Platform)        15
+Inquiry Management        16
+Payments and Invoices        17
+User Profiles and Security        18
+Workflows        18
+Cancellation and Refund Policy        19
+Customer Mobile Application and Customer Web Application        20
+Homepage/ Default Landing Page        20
+Banners:        22
+Activity Listings        22
+Listings and Searching        24
+Adventure Details        26
+Payments & Booking Confirmation        30
+Booking Cancellation and Modifications        34
+Customer Registration and Customer Profile        36
+Bandar Forums (Phase-2 Module)        40
+Admin Portal        41
+Admin Login and Admin Profile:        42
+Business Dashboard        47
+Customers        49
+Vendors        53
+Notifications        55
+Adventure Activity Listings        56
+Manage Activity Tags        57
+Bandar Credits (Bananas)        57
+Certificates and Badges        58
+Booking Management        61
+Inventory Management        63
+Promotions Management        63
+Banner Management        65
+Customer homepage listing management        66
+Inquiry Management        67
+Website Static Content Management        70
+Discounts, Offers and Coupons        71
+Payments        72
+Add-Ons Management        73
+Cancellation Policy Management        73
+Logging and Analytics        73
+Future Modules.        74
+
+
+Introduction
+This document outlines the functional and software requirements for the Bandar suite of applications. The portfolio of bandar suite of applications is listed below. Note that the wireframes are for reference purposes only and do not reflect the UI/UX design of the application. 
+1. Vendor Mobile Application: This application will be used by the vendors/suppliers/providers of the adventure activity. This is a mobile application and will be available on both android and apple devices. The main goal is for the vendor to be able to manage their business, both via bandar and outside of bandar, through this app. The app needs to provide an easy interface for the vendors and their staff to perform quick customer check-ins, list and manage their booking and business activities, perform business analytics, subscribe promotions on bandar, manage payments and their business with bandar, etc. This will also support certain functionality like check-ins and booking details to be available offline. 
+2. Customer Mobile Application: This is the primary customer facing mobile application for customer to be able to search, find details, do bookings, create, and manage their profiles, track their activities, badges, certificates, and details of their bookings along with ability to find support and manage bookings etc. The is a mobile app and will be available on both android and apple devices. 
+3. Customer Web Application: This is a customer facing web application which will provide a replica of the functionality provided by the customer mobile application. Support for all common browsers should be provided. 
+4. Bandar Management Application: This is a web application which will be the core for running the business of the company. The application will provide the ability to manage all the bookings, track the state of the business, provide support to vendors and customers for bookings, listings. Manage and provide workflows for payments to the vendors, listing approvals, add-ins, running promotions, provide backend for customer management etc. 
+
+
+
+
+Vendor Mobile Application
+Welcome and Sign-up/Sign-In Screen
+This will be the first page when a vendor user opens the screen. It will show up with Bandar logo and basic animation as welcome, and at the bottom links to sign-up/List your business on bandar or sign-in. Vendors should remain signed-in if they are at a location where connectivity is not available. Sing-in is also allowed with biometric identification. 
+Vendor Registration (Sign-up Page)
+This module covers the vendor registration pieces, a vendor can be an individual entity or a registered business entity. At this time (August/2024), we are not considering agents, but this can be a potential to be added later, where agents can register with bandar on behalf of the vendors and adventure activity providers and provide add-ons or value-added services on top of it. 
+The registration is a 2-step process. The first step is when the vendor registers by providing basic contact information and step 2 is when the vendor provides detailed information and can-do document upload. Note that step 2 is something which they can always come back and modify. 
+The basic information on step 1 or sign-up screen 1 is Mobile phone, contact person name, Vendor/Business Entity Name and email which will allow you to register yourself as a vendor via OTP on mobile phone. (We may consider OTP through email verification) The following screen shows the email OTP verification, a similar mobile OTP verification screen will be there with option to enter OTP. 
+ A screen shot of a sign up form
+
+Description automatically generated 
+  A screen shot of a computer screen
+
+Description automatically generated 
+On Step 2 after verification of OTP, vendor can provide the following details to complete their registration with bandar. Vendors can always leave this page and come back later to provide this information to finish their registration. At the top of the page will be the vendor type as Individual or Business Entity. 
+Option – Business Type – Individual or Business Entity
+If Individual – Notification should be read.
+“Please upload your individual PAN card. Further provide Aadhaar Card or Voter ID or passport as identity proof, driving license or utility bill or passport for address proof along with bank details and cancelled cheque copy for payment processing”
+If Business Entity – Notification should read, 
+“Please upload your company PAN card and COI (Certificate of Incorporation)/Udhyami Aadhaar Card. GST certificate if the company is registered under GST. Further provide your utility bill or rent agreement in your company name as address proof. Provide bank account details and crossed cheque with company name on it for payment processing. “
+Fields:
+Contact Person Name: Carry over from previous screen but can change it here. 
+Contact Person No.: Carry over from the previous screen but can change it here. Can add multiple. Up to 2 only
+Contact Person Email: Carry over from previous screen but can change it here. Can add multiple. Up to 2 Only
+Business Name/Company Name: 
+Business Address: Which should have the ability to have entire address including landmark. If possible, provide a picker facility to pick a location on a map. 
+Admin Portal Trigger Note: All the details that are extracted from the vendor documents will be saved manually using the Admin Panel by the Bandar.co.in backend team. For example, GST no., Bank account details, etc. And will show up as filled fields here once processed in the Admin panel. A notification and email will show up in the admin panel for this activity, showing that a document has been uploaded by the vendor. 
+ A screenshot of a phone
+
+Description automatically generated 
+
+Vendor Homepage/Vendor Profile:
+The vendor homepage is the first page the vendor will see once they have created their profile. Note that they might have not uploaded all the required documents, but if they have passed step 2 of registration, they will see this page when they login. 
+My Profile page: At the top right corner of the page will be the Vendor Profile link. Which will take them to the Vendor profile page, which will show the profile with all the information that has been collected till date along with an option to upload or change their photo and business place photo. They will be able to change the details on this page or can also upload new documents as needed. 
+Admin Portal Trigger Note: This will send a notification to the admin panel so that the change can be approved for document uploads. No notification is needed for name changes, contact information changes or photo uploads. 
+ A paper with writing on it
+
+Description automatically generated 
+
+ Vendor Homepage will have a link to the following pages in the hamburger menu. 
+1. Manage Profile – Described above a Vendor Profile page (This will not be in hamburger menu but on the right top corner of the page)
+2. Check-in Customer. – Ability to check-in a customer for an existing booking with a QR code. (This will not be in the hamburger menu but on the top center of the page) QR code scan takes the vendor to the booking which will allow the vendor to take actions on that booking which is explained under the manage bookings section. 
+3. Book an Activity/Onsite Sales – For booking an activity onsite (outside of Bandar platform)
+4. Past Bookings/ Future Bookings/Manage Bookings – Page will allow vendors to find and list all the bookings on various filters and take booking specific actions. 
+5. List/Manage your Activities on Bandar– This is where activities will be listed. 
+6. Business Analytics
+7. Update Inventory
+8. Promote your Business on Bandar.
+The homepage screen will highlight basic analytics on the business done with bandar. 
+1. Total Bookings – Total bookings completed successfully till date with bandar.
+2. Happy Customer count – Total customers who have left 4 or above stars. (Happy customer is the total number of customers who have provided positive feedback for the activities they took. Anyone rating 4 or 5 on a 5-point scale is considered a Happy Customer.)
+3. Total Business done with Bandar – Revenue of booking till date with bandar. 
+4. Vendor profile completed % - Clicking on this will take them to the vendor profile page. Just devise a % based on how many fields are completed in the backend for vendor profile (name, contact details etc. and if an activity is listed or not). 
+Admin Portal Trigger Note: In the backend we will track how much profile is completed and send them recommendation or notes to finish their profile or add information to certain sections. 
+5. Upcoming Bookings – Default view of today. Display table with the next 10 bookings. Ability filter with customer date range. 
+6. Visitors Vs Bookings: How many visits were made on their listings on bandar.co.in and how many bookings were made? 
+7. Activity wise bookings break up pie chart – Date range filter. 
+8. Day wise break up of bookings bar chart – 7 Days default view with date range filter. (14-day max view)
+
+
+ A screenshot of a graph
+
+Description automatically generated 
+  A screen shot of a graph
+
+Description automatically generated   A chart with a pie chart
+
+Description automatically generated 
+
+
+Manage Bookings (Upcoming and Past bookings)
+This page will provide the ability to view all the bookings for the vendor and will provide the option to search and filter bookings on the following fields. 
+1. Search - Customer Name
+2. Search - Customer Contact no. or email 
+3. Search – Booking ID
+(Note: A Single search box which can search across fields will also work, instead of multiple search boxes)
+4. Activity Name/Adventure Name -Filter – Drop down
+5. Date Range filter – Date picker
+6. Status- Filter- Drop Down – Completed, Active, cancelled (By Customer), Cancelled (By Vendor), Cancelled (Other), In-progress. 
+ A screenshot of a computer
+
+Description automatically generated 
+                 A screenshot of a computer
+
+Description automatically generated 
+The bookings listing table will show booking id, Date/start date, Time slot, activity name, no. Of people activity booked for, customer name, customer contact details, status, Actions button, customer age and gender (age and gender, if needed by an activity and can be blank if not), any add-ons added to the activity and package option purchased if applicable. 
+The action button will allow the vendor to check-in a customer, which will change the status of the activity to in-progress. Note the vendor can also scan QR code to reach the booking directly from their home page and then check-in the customer. This will automatically change to complete at the end of the day. A vendor can change the status of the activity in action to Cancelled (Vendor) and give a note for cancellation. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Add an Adventure / List your Adventure with Bandar/Manage your activity/Delete Activity
+
+
+  
+  
+
+
+
+Vendors should be able to list their adventures on the Bandar app. The way to list their adventures on the Bandar app is by first creating their adventure listing on their App within their user login.
+While creating their adventure listing, a vendor will need to add following
+* Name, 
+* The name of the Adventure (which accurately describes the nature of activity) and 
+* Select the tags of the adventure from the drop-down menu. The drop-down menu options can be “Land”,“Water”,“Air”,” “Space,” "Other” and other tags listed in the section below. These are a subset of tags approved by bandar admin to be available to vendors for tagging their activity. Note that there will be other tags that bandar admin will use on their own to further tag any activity. 
+Additionally, for all adventure listings, vendors would have the requirement to provide additional categorization.
+Fields:
+* Group Activity Type – Drop Down - Is the activity a Group activity or a Solo Activity?
+* Check box - Is the activity fit for Kids/Kids Friendly
+* Age Restriction – Provide Min and Max Age
+* Other Restrictions – Text field to enter restrictions. Provide caption “Ex: Min Weight and Max Weight, Min Height and Max Height, Restrictions due to Health condition – like pregnancy and hearts issues. Etc." 
+
+
+* Difficulty level of the adventure- Drop Down – Novice, Experienced, Expert, Pro.
+* Indoor/Outdoor/Both - Drop Down - Is the activity conducted Indoors or Outdoors
+* Each activity listing should have the option of creating custom #tags. These #tags will enable searchability by potential customers on the customer app/website. 
+   * Tags can be any text applied to that activity. We will have a set of tags (Standard tags) that vendors can choose but can also provide their own which we review and add or not. Ex: Tags: Kids friendly, Adult only, Thrilling, Bandar Recommended, Family Friendly, Sale Special, Offer Tag, etc. For standard tags and admin managed tags, there will also be an icon image that can be associated with it. 
+Admin Portal Trigger Note: Some tags will be applied from the admin portal to the activity only, and admin controls all tags applied, even by vendor and can remove them if needed. 
+All activities listings should have high quality pictures highlighting various stages of the experiences. The picture quality will be verified manually, following dimensions will be required and will be mentioned in the caption for picture upload 
+* Min Required pixel size – 1200 X 900 Pixel
+* Max 10 pictures allowed per activity listing.
+* Each picture max size limit- 10 mb
+ Vendors are also required to upload videos when available. We will need to identify some limitations/requirements for video quality, size, etc. Such that storage as well as live play for customers is smooth and seamless.
+* Max Videos allowed - 3
+* Max Video size - 50 Mb
+All activities should also allow vendors to list “add-on” services that are optional for customers and can be availed for a charge.
+* Add-ons will have 3 fields, name of add-on, description of add-on and price of add-on.
+Vendors can add up to 5 add-ons to the activity. Each add on will be a check box for the customer. 
+All listings should also provide details like City, State, Address, GPS/google map location. Also provide additional information on how to reach the destination in case it is complex to reach the venue. This will be a text under Address additional information field. 
+Detailed Description Field- All activity lists should provide a detailed description of the activity and the necessary steps that any customer will need to follow to be able to complete the activity successfully. If there are any specific requirements about clothing, protective equipment, sunscreen, umbrella or ponchos, mosquito repellant, etc. That should also be added as part of the listing.
+The listing should have an option to add additional text fields, which will have the ability to add header and text below it for the vendor, to add any kind of informational field, for ex: Know before you go, Additional information, Highlights. 
+All activity listings should also provide a schedule of timing (Hours of Operation) which is valid for the said activity. A Calendar with selection for dates and times for each day of the week should be provided for the vendor to add the hours of operation. Also, vendors should be able to mark planned closures or days on which they are not providing service. 
+If there is a reporting time requirement in advance of the activity, the same should be clearly mentioned in the activity listing description.
+All activity listings should also provide a standard duration of the activity – which is the slot size. After providing the hours of operation, depending upon the slot size, as many slots will be created for each day automatically. 
+All activity listing should be accompanied by inventory/activity slots available, including # of people that can be accommodated per slot. This is managed by a calendar which is also connected to the vendor inventory calendar and updates real-time as the vendor updates their inventory. 
+All activity listings should also be accompanied by FAQs.
+Pricing and Package Options:
+* Vendors will provide pricing per person, or per slot.
+* They can provide options for pricing, which will be called a package option.
+* They can provide up to 5 package options and their pricing. 
+Vendor Discounts and Offers -
+* A vendor can provide a discount on the price as an offer. 
+* The Discount field will have 2 options - % discount and straight discounted price, along with a to and from date field. The discount will show up as the original price slashed and new discounted price displayed on the customer facing apps. 
+Admin Portal Trigger Note: Once the vendor has completed creating the activity listing, an auto generated, unique Adventure ID will be created by the system and will be assigned to this activity. Further, this will then send a notification to Bandar Admin portal for review & approval. Any activity will only get listed as a live activity post review & approval from Bandar Admin. Vendors can make changes to any field in their activity. All changes to the activity will send a notification with the change to bandar admin portal and will only be listed in the customer portal after approval and changes done by the backend team on Bandar admin portal.
+“Manage Activity” will allow the vendor to modify the existing listed activity, or can also mark an activity as inactive, making it immediately unavailable for any future activity bookings. 
+Delete Activity- This will mark the activity as inactive but will not delete any date of the activity information from the system. The system will keep track of when the activity was last marked active or inactive. 
+Update Inventory/Reserve a slot:
+Vendors can update the inventory for each activity listed separately. 
+Inventory updates will be done by just blocking/reserving slot/slots over one or multiple days by vendor. Vendor can reserve a slot as NA (Not Available) or Booked (Booked locally or outside of Bandar)
+When a booking is made on Bandar the slot is automatically reserved and shows that vendor as Bandar reserved slot. 
+Vendors will also use this to make bookings outside of bandar initiated bookings. This should allow a vendor to enter customer name and contact details while making a booking along with any other notes for that booking slot. Also, optionally it will allow you to enter the booking source as a text field. 
+All the bookings made here will also show up in the upcoming bookings section.
+Ability to sync calendar with Google/Outlook calendar. Sync now button to sync calendar.
+Business Analytics
+The business analytics section allows vendors to access graphs and reports which helps them in understanding their business and strategize better to increase their revenues and customer satisfaction. 
+This feature can be enabled or disabled by Admin for each vendor and will not be available by default. 
+The following analytics components will be provided. Each component can be enabled and disabled for each vendor. 
+1.        Activity wise breakdown of count of bookings (Pie Chart) (Date range filters)
+2.        Weekday/Weekend wise revenue and activity bookings breakdown (Bar Chart) (Filter by Activity and Date range)
+3.        Customer Feedback by rating Score- Count (Filter by Activity and Date)
+4.        Prediction of booking/revenue by days for next 30 days. 
+5.        Count of bookings by booking source (Bandar, Onsite, Other Source)
+6.         Total Business Earnings from Bandar (Filter by Date and Activity)
+7.         Bag of words/word frequency analytics on feedback text (Filter by activity and range)
+8.        Demographic analytics of customers (Customer count and revenue by age group, customer count and revenue by location, customer count and revenue by Months etc.) (Filter by activity and date range) 
+9.        Visitor count and Conversation rate (how many booked after looking at your listing) by activity and by week /month (Filter on date range)
+10.         Wishlist added and likes count (How many customers have added your activity to wish list or liked) by customer demographic and by activity, running number. 
+11.         Trend of booking overtime by activity (line graph) by days. 
+
+
+Promotions (Business Promotions on Bandar Platform) 
+Business promotion on the platform allows vendors to buy subscription or one time promotion packages which help them in promoting their business on Bandar platform. (Promotions are also called as subscriptions on some screenshots and documents)
+The functionality will allow vendors to scroll through all the different promotions they can run on the bandar platform. 
+The promotion information will be managed from the admin portal, where an administrator can add a new promotion and enable and disable it to be available on the vendor promotions screen. Each promotion will have the following fields. 
+* Name – Name of promotion package
+* Images – Can upload 1 and up to 10 images. 
+* Description – Detailed text field which will outline what the promotion package is 
+* Cost – Amount and if it is one time or Monthly/yearly
+* Validity period - To and from date fields. The promotion will automatically appear on the promotions screen or disappear on vendor app based on these dates. 
+* An “Interested” button at the bottom of the promotion package detail will send an email/notification on the bandar admin panel with details of the vendor (name and contact details) and the promotion package they are interested in. 
+Vendors can contact the bandar admin team via email or phone to enable a particular promotion. 
+The vendors can then make a payment to the platform by clicking on the make a payment button which will take them to the payment processing page. 
+  
+
+Inquiry Management
+This section will handle the inquiries to and from vendors.
+The Vendor will receive in-app notification and can open inquiries list. 
+  
+
+For each activity listed, we will have a send inquiry button, if a customer clicks on that send inquiry, they need to fill that form, and the admin will receive that inquiry. Each inquiry will have details like Activity name, customer contact information (name, email, phone), and inquiry details area. Note: Inquiry can also be initiated from the generic contact us page, in that case no activity details or booking details will be present. 
+The form will automatically include the Activity Name, Activity id, Vendor Name, Vendor ID details and will append it with the details from the form on the customer app. A customer can also initiate an inquiry from an existing booking, in which case booking id will also be included in the inquiry details.   Upon verifying the details of the inquiry by admin, that inquiry will be forwarded to the vendor where the admin can modify the initial inquiry. The vendor will reply and afterwards, the admin can view that vendor's reply. Once the admin reviews the vendor reply now the admin can send the reply to the customer. There could be back and forth between the customer-admin-vendor until the inquiry is marked as closed/resolved by admin. This represents a single inquiry flow and will have only one inquiry id. 
+The vendor portal will only manage the vendor side of these inquiries. The vendor does not see the customer contact details. Vendors will see the chain of communication from admin on their side under the same inquiry id.  
+
+
+Payments and Invoices
+This page will provide for the vendors to look at all the payments they have received from the platform, with a line-by-line item for each booking. 
+They can filter this by booking id, customer name, activity name, date etc. This is like booking details with added fields for transaction id, amount received, date when amount received, payment status, breakdown of payment in (tax, GST, Fees etc.)
+This screen will also provide the ability to download invoice /tax forms (PDF) for payments made by bandar to the vendor and the ability to print the payments list.
+The payments will be managed from the Admin portal, where an Admin will check line by line item and can modify the final amount of payment to the vendor, enter a description field and then mark it for payment. 
+This page will also allow vendors to make payments to the bandar platform, which will take them to the payment gateway screen. This will integrate with the pay now button under the promotions package. 
+User Profiles and Security
+Vendor user profiles and security page will allow vendors to manage users for their application and provide basic access or privileged access. 
+Vendors will have 2 types of users – Vendor Admin and Vendor User.
+Create a user with Id and password so that they can login with them on their device. 
+Ability to add, modify and delete users. 
+Vendor Admin will have access to all the sections of the vendor apps and can create Vendor Users. 
+Vendor User will have access granted by Vendor Admin to each section of the application. The following are the sections to which a Vendor Admin can grant access to Vendor User. The access will have full rights and no further fine-grained controls. (Fine-grained access can be considered in a future module)
+* Vendor Homepage
+* Vendor Profile
+* Booking (Manage and View, and ability to Check-in customer)
+* Manage Activity (Add, Modify, Delete)
+* Manage Inventory
+* Business Analytics
+* Promotions
+* Manage Inquiries
+* Payments and Invoices
+Workflows
+The following section provides some workflows integrated with the Vendor application. 
+* Booking Workflow (Vendor Rejection, Inactive Activity and Refunds): Whenever the online booking is done, it is confirmed by default and added to the vendor's upcoming bookings, Vendor can reject a booking later by entering a reason. And any vendor cancellation will trigger the notification on the management portal along with an email. The refunds to the customer will not be automatic, in the management portal the admin will approve the refund along with amount and reason, which will be sent to the customer after admin approves it. The refund will be in money and not in bandar credits when vendor cancels an activity
+Once the activity time has passed, neither vendor nor customer can cancel it, especially when it is marked as complete. In edge cases, if due to unforeseen circumstances the activity could not be completed, then customer or vendor can reach out to us manually for refunds and we will trigger that process manually from the management portal following the same process as above for refund to customer.
+This is related to the Activity listing by the vendor. If the vendor makes the activity listing inactive, customers will not be able to see the activity or make any future bookings, however current bookings will be visible. Customers’ already booked activities should not be impacted by this change. Customers may need to call Bandar Customer Service if they need to reschedule/modify such bookings made in the past.
+
+
+
+
+Cancellation and Refund Policy
+There will be standard cancellation policies offered to vendors amongst which they can opt as per their convenience and comfort.
+These policies will be managed from the admin portal and will be applicable for each activity. A vendor can pick the cancellation policy applicable to them. Admin can manage the cancellation policy applicable to each activity from the admin portal. 
+1. Flexible Cancellation Policy:
+* Cancellation Period: Free cancellation up to 24 hours before the day of the activity.
+* Refund: Full refund of the booking amount.
+* After Deadline: No refund for cancellations made less than 24 hours before the day of the activity.
+2. Moderate Cancellation Policy:
+* Cancellation Period: Free cancellation up to 7 days before the day of the activity.
+* Refund: Full refund for cancellations made within this period.
+* After Deadline: 50% refund for cancellations made 3-7 days before check-in. No refund for cancellations within 3 days of the day of the activity.
+3. Strict Cancellation Policy:
+* Cancellation Period: Free cancellation up to 14 days before the day of the activity.
+* Refund: Full refund if canceled within this period.
+* After Deadline: 50% refund for cancellations made 7-14 days before the day of the activity. No refund for cancellations within 7 days of the day of the activity.
+4. Non-Refundable Policy:
+* Cancellation Period: No free cancellation.
+* Refund: No refund provided, regardless of when the cancellation is made.
+* Lower Rates: Typically, bookings under this policy are offered at a discounted rate.
+5. Last-Minute Cancellation Policy:
+* Cancellation Period: Free cancellation until 12 hours before the check-in time of the activity.
+* Refund: Full refund within this window.
+* After Deadline: No refund for cancellations made less than 12 hours before check-in time of activity.
+* Usage: Ideal for same-day bookings or special deals.
+
+
+
+
+
+
+Customer Mobile Application and Customer Web Application
+The customer mobile application and customer web application will have the same functionality, except the UI (Mobile vs Web App). The Customer facing application is the core to business as it is the interface for providing exceptional user experience to our customers who are looking to book and enjoy their adventure activities. The website will be adaptive for it to be accessible both on mobile and laptop/desktop browsers. The UI for mobile app will be created using native functionality. We need ideas and are open to creative UI design for mobile app. The following sections details the functionality for the customer application and outlines only web application design.
+Homepage/ Default Landing Page
+
+
+ A screen shot of a computer
+
+Description automatically generated 
+
+ A screenshot of a web page
+
+Description automatically generated 
+
+The primary objective of the homepage is to allow customers to explore various offerings from bandar and get quick access to the adventures they are looking for. 
+On the homepage, 80% of the screen has some attractive adventure pic, with search bar at the bottom 2/3rd of the page along with drop down options for filters (Location, type of activity- Solo, Group, Family friendly, Wildlife experiences, Level of intensity – novice, pro)
+ Bandar logo to be displayed on the top left and the following buttons on the top right- Login button, Cart, contact us, become a partner.
+Below is a section with Last visited which highlights the activities that the user had browsed when they visited the site last time. 
+Banners: Below it will be a space to display banners (advertising and offers section), the banners can be in a square or rectangular box and will support an image or gif. Clicking on the banner will lead to the activities relevant to it. Basically, providing the filtering ability on the activities. The banners will be controlled from the admin portal along with the ability to provide the filters applicable for those activities. 
+Activity Listings: If scroll down we get listing of featured adventures with images, one or two rows which keeps scrolling may be 6-12 listings. These are the ones that have opted for paid promotion, along with the ones searched for and booked highest. The application will provide the ability to choose the ones that appear here in the Admin Portal. 
+ A screenshot of a computer
+
+Description automatically generated 
+
+Homepage should be able to detect the location when applicable, so that the listings can be optimized accordingly. Below featured listing, activities will be listed by certain categories and will be scrollable horizontally – Location, Typeof activity, 
+The sections for listing of categories are expandable and controllable from admin panel. Below are some examples of the listing categories sections. 
+Last Viewed Adventure (applicable if the user has previously searched or open any Adventure Card)
+- Immediately beneath the section displaying the user's recently viewed adventures, tabs in a slider format will be presented which will contain names of Adventure Categories , Clicking on these tabs will redirect users to the page containing respective Adventure Cards
+- Most Searched Adventures (For the initial phase this will be managed by the Admin, Phase 2 -  Later on Google Analytics will be integrated to show these results)
+- Hot Destinations (This will be managed by the Admin)
+- Adventure cards showcasing various categories, determined by factors such as:
+   - Highest number of bookings
+   - Most frequently searched adventures
+   - Become a Vendor 
+       - This section will contain a description along with a Button which will redirect the user to sign up process to become a vendor 
+ A screenshot of a computer
+
+Description automatically generated 
+
+After this our certifications, accreditations, press coverage, assoc. Memberships images to be scrolled. Admin portal will have the ability to add image and link to this section. 
+At the bottom of the page various links are provided- Contact Us, About Us, Blog, Terms & Conditions, Reviews,FAQs,Partnerships, Become a Vendor,  
+When a visitor is navigating away from the website without booking or creating a profile, a popup should appear which offers visitor an option to subscribe for offers and adventure idea, by submitting their email address.
+Listings and Searching
+The search bar will provide the ability to filter the activities based on the entered search criteria. By default, the search bar will show some search suggestions (When you click on the bar suggest pop up appears (ex:allevents), This should be customizable from admin portal).
+- These suggestions can be based on the most searched adventure or last searched city of the person logged in. 
+"After filling in the details, The customer will search and land on the listing page
+The search listing will have these features: (There is also idea of providing additional information and images on hover over the adventure card)
+Customer can filter search
+- Adventure Card List (with Image, Name)
+- Price
+- Discount prices if applicable 
+-Short description of the activity.
+-Star Rating of the activity
+ A screenshot of a computer
+
+Description automatically generated 
+
+The listing page will also then provide the ability to further filter and sort the listing on various criteria. Some examples are the tags we used for the activities, destination, rating, price range, duration of the activity, activity name (paragliding, bungee jumping etc.), thrill meter, Vendor/Activity name. They should also be able to reset any existing filters that might have passed through the search mechanism. The user will have to pick at least 1 filter to change the results of the listing page. 
+ A screenshot of a computer
+
+Description automatically generated Adventure Details
+Adventure detail page appears when user clicks on the adventure. This is where the user can get further details of the adventure and can make selections (date, slot, no. of people, add-ons etc.) for booking. 
+  
+
+
+
+ A screenshot of a computer
+
+Description automatically generated 
+
+"When the user selects Adventure card the details in the Adventure Card will expand -
+The user will be able to see the following on the Screen 
+-  Name of the Adventure
+- Duration
+- Location 
+- Images of the adventure
+- Tags and thumbnails applicable to the adventure below the images
+- Vendor Name (This will not be shown) 
+-  Level of Adventure
+-  Destination Details
+-  Share Activity (This will be a Social Media Integration with Facebook, Whatsapp and Instagram) 
+-  Add to Favorites 
+-  Prerequisites of the Activity (If any)
+-  Description of the Adventure 
+-  Badges user will get 
+- Certificate (If any) (Certificates will be issued to user after they complete an adventure)
+-  Contact Us (this will provide the context specific contact us, where the details of the activity are sent to the inquiry to the Admin portal)
+- Add-Ons (Listed Add-ons) with pricing for each, which can be added to booking. Add-on pricing is by booking or by each person in the booking. 
+-  Options available for Payment 
+   - Full Payment 
+   - Partial Payment 
+   - These options will be decided by the admin 
+-  Payment Breakdown Widget (With book now option, or option to add to cart)
+-  Policies 
+   - Modification (Explained Below)
+   - Cancellation (Explained Below)
+- Slot selection – Calendar with date picker and slot picker (slot based on the activity setup as defined by vendor and controlled from Admin portal)
+There should be functionality to add any kind of text area with heading to the activity detail page from the Admin portal. This will allow to add any kind of details specific to activity in a free form manner. 
+Each of the Text section will have basic ability to format text (color, font, background etc.) from the Admin panel. 
+At the bottom will be the overall rating of the activity and rating details, for example as in Amazon product reviews. 
+Admin Portal Trigger Note: Every booking and cart left behind will send a notification to the Admin control panel with the details. It will just appear in the notification area under the booking or cart left behind category. 
+
+
+  
+
+
+
+Payments & Booking Confirmation
+The payments section will allow the user to review the booking and make payments with major payment mechanisms supported. Below is a screenshot of one of the options. 
+Payment Options:
+        • Ability to apply available Bandar credits towards payment/part payment
+        • Ability to make full payment via credit card/debit card/UPI/other payment wallets
+        • Ability to pay just the booking fees (15-20% of total booking) to confirm booking and pay the balance to the vendor in real-time at the time of the activity (This feature is only enabled for select activities from the Admin panel, pre-negotiated with vendors)
+Ability to apply coupons (by selecting applicable coupons) during the checkout process, or by manually entering coupon code text box.
+The applicable coupons for the activity will be controlled from the Admin Panel.
+If the customer is already logged in, then prepopulate with customers details. 
+If the customer is not already logging in, then ask for details, email, phone and name are mandatory. (This is for guest checkout option)
+For multiple passenger bookings, only one passengers’ detail are needed and others are optional. 
+Provide option to create an account- just ask for a mobile OTP
+Once the payment is complete, the screen shows the booking details (booking confirmation no, Details of the activity booked along with options selected, location and contact information of the vendor) and provides QR code. The same details are emailed/texted and are saved in the account.
+The booking confirmation page will also have Share to social media link where they can post the booking on Facebook/Twitter/Instagram/WhatsApp etc.
+Note - if the user is booking for some other person, then they will select Book for someone else option which will enable them to enter a 2nd phone Number along with name where all the notifications and SMS will be sent
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A qr code on a checkout
+
+Description automatically generated 
+
+Booking Cancellation and Modifications
+Modification of a booking is applicable only after a successful booking. 
+The modification and cancellation will be done from the My Bookings page under the customer profile. The customer profile details are explained in a separate section. 
+Per booking - Cancel, modify (only add Add-ons, Date change, check cost difference)
+Modification 
+        Modify Up – Only adding addons and data changes are allowed. For date change, Admin portal will control which activities allow date changes and how many hours in advance it is allowed. The customer 
+will pay for the difference in price. 
+Upgrade to higher priced package for same activity or adding adventurers Is not allowed. We recommend customer to cancel the booking and rebook in that case or call our helpline for assistance.
+For each modification notifications will be sent to the Admin Portal, and to the Vendor of the activity on Vendor app as well as SMS,Email and whatapp to their contact information. .
+The customer will get the new booking information with the added addons or date changes. 
+        Modify Down (removing add-ons is only allowed.)  - You get Bandar credits only. For removing add-ons same policy for advance notices as date change applies.
+        
+Cancelation policy -  No question asked return add-on, This add-on will be a percentage of the total cost or fixed cost and we will decide that in the Admin portal for each activity. 
+Cancellation policy will be variable based on different activity type and vendor terms.
+A set of different cancellation policies will be created. Admin will apply the relevant cancellation policy to the activity from the Admin portal. Below is an example of one of the cancellation policy. These policies are defined under the vendor module. 
+        • 7 days before the activity – Full refund, no questions asked (refer to refund policy for how refund will be processed)
+        • Less than 7, more than 24 hours before the activity – Full Refund as Bandar Credit only.
+        • Less than 24 hours before the activity – No refund/cancellation possible
+        • No Show – Full amount will be charged, no refund!
+
+
+Refund Policy:
+
+
+        • While refunding, give the customer an option of back to source or as Bandar Credit, depending upon cancellation policy
+        • For any unforeseen/uncontrollable reasons, if any activity gets cancelled (by vendor/because of weather conditions) we will offer full refund with the option of back to original source or Bandar Credits.
+
+
+Customer Registration and Customer Profile
+Customer registration page will allow a customer to create credentials to login on the platform. The customer registration process will have mandatory fields like First Name, Last Name, Email, Phone no. 
+All the other details are optional. 
+A customer profile will be created once they have registered. The profile will have the following details, which a customer can fill in as part of the registration process or can come back later to complete the profile. The profile page will be shown as a single page with scroll down and hyperlinks for sections. 
+ A paper with writing on it
+
+Description automatically generated 
+
+ A screenshot of a computer
+
+Description automatically generated 
+
+
+
+Personal Details Section:
+* Name and Contact information (Mobile & Email)
+* DOB
+* Gender
+* Emergency Contact Information (Name, Email, Phone number & relationship with user)
+* Photograph (Profile Pic) (If a user does not update their profile picture, a default avatar will be show as their profile picture). These avatars can be added as an image bank from Bandar Admin Portal.
+* Social Media Handles. (As user can integrate with their social media handle, that way they can share their achievement easily on social media)
+* Address (City where they live)
+* About Me – Open text box section which allows people to write something about them.
+* Preferences – allows users to describe their preferences w.r.t adventure activities. Image Buttons (like spotify) that will allow users to select from: (These options can be added/modified from the admin portal)
+   * I am pro-Adventurer; love to undertake difficult adventures
+   * I am a novice adventurer; prefer average difficulty of adventures
+   * Aquaman – Prefer water-based Adventures
+   * Birdman – Prefer Air-based adventures
+   * Natureman – Prefer nature-based adventures
+   * SoloPlayer – Prefer going on solo adventures
+   * Team Player – Prefer going on team/group adventures
+   * Animal Whisperer – Prefer going on wild-life excursions
+Achievements Section: (Badges and Certificates)
+Badges and certificates are assigned to users on completion of a particular activity or set of activities. These badges and certificates are assigned to the activity from the Admin Portal and when finished, it is automatically given to a user for single activity badges and certificates. The badges and certificates that are given on completion of set of activities will be assigned manually to the users by Admin portal. The Admin portal should provide a way to assign badges and certificates to a user. This functionality will become automatic in future. 
+* List of achieved Badges from Bandar 
+   * Each badge is an Image and a title and a short description of what that badge signified. 
+* List of achieved certificates. 
+   * Certificate Image, Certificate title and short description (Bandar Admin should be able to upload a format for the certificate including text and customizable fields for each customer completing the said activity.
+ A screenshot of a computer
+
+Description automatically generated 
+
+My Bookings Section:
+My booking section shows the past and upcoming bookings. This will be shown in a list form and customers can get the details of the booking by clicking on it. All the details that are on the booking confirmation page that is sent to customer on completion of a booking can be accessed here. 
+For past bookings, the customer will also be able to upload their photos for a completed activity or download photos which are uploaded by admin/vendor for the activity. (Photography Add-on)
+There will be the ability to share the booking details (activity only) on social media platforms. Ex: " I just booked myself and amazing adventure (it could be the name of the adventure here) on Bandar.co.in. It was easy!" with a link to the activity on bandar.co.in
+There will be ability to cancel/modify an existing booking. 
+Favorites and Preferences Section:
+This will allow a customer to select the locations and activities they like or would like to do in future. They will just pick from a list of locations and activities that are listed. The list will be a single common list and additions or deletions to it can be done from the admin portal. 
+This section will also store any listed activites that a customer has marked as favorite 
+This will be used to show custom recommendations of activities on their home page when they login. 
+My Booking Inquires Section:
+This section has the contact us inquiries and responses from bandar admin. Similar to the Vendor inquiry page and workflow, but on the customer end. 
+My Bandar Credits:
+This section shows the Overall bandar credits (Bananas) a user has and a log of when and why they earned or used them. 
+Bananas are like points; the value of each Banana can be set in the Admin Panel.
+Bananas can be managed from Admin panel and can be assigned to any user. Currently the bananas will be credited manually or when a cancellation or modification happens, and user accepts to take the credits in form of bananas. The cancellation credits will be an automatic operation.  (Bananas can also be automatically assigned based on promotion – for e.g., if we are running a 2-week promotion of 20% cashback on all bookings made during this time period – such Bandar credits (Bananas) will automatically get assigned to the user account on successful completion of such booked activity). (This is phase 2 activity)
+Bandar Forums (Phase-2 Module)
+
+
+	The user will be redirected here through the Home Page
+The user will be able to see the following fields 
+- Search Bar 
+- Create your Forum Button 
+- A section of curated boxes with images and Name of Forum which can be managed by Bandar Admin from the Admin Panel 
+- Show more <button> selecting this button will enable the user to see more curated boxes 
+	
+
+	When a user selects any one of the curated boxes, they will be 
+- Redirected to the list of topics associated with that particular forum along with no of replies
+- See a Ask/post Button 
+	Create your Forum
+	Selecting Create your Forum Button will open up a popup in the same window
+- Forum Name 
+- Brief Description
+- Create <button> 
+	Forum Search Results 
+	Listings of posts related to the search query. 
+Search Listing will include 4 columns, Results will be displayed as - (We should show these search results in order of most relevant and most recent comment on the forum.
+- Topic 
+- Under topic the user will be able to see the search query and immediately below that topics associated with it 
+- Forum 
+- will consist of the forum name 
+- Author
+- The person who posted the topic
+- Post Date 
+- The date when the post is posted
+And any responses/discussions that have taken place on the topic.
+	Ask/Post Button
+	Selecting Ask/post Button will open a pop up in the same window with the following fields 
+- What's on your mind? <text button>
+- Photos Upload <button>
+- Videos upload <button>
+	Threads 
+	Upon selecting a topic, users are redirected to a dedicated screen displaying the full content of the chosen post.
+The screen includes a section below the main post content for reply threads or comments where the users will also be able to like posts
+Users can engage in threaded replies which allows users to reply to specific comments, and thereby forming a thread
+	
+
+Admin Portal
+The admin portal is the central application to manage, track and support business activities. The admin portal has modules to manage the customer side of the booking, customer account and profile, customer payments and bandar credits (bananas) etc. On Vendor side it has modules to assist with the Activity listings, payment and support for vendors, running promotions, managing discounts etc. It also manages the content and appearance of the main page and provides the business owners with analytics, reports and logs to track the performance of the business. 
+Admin Login and Admin Profile:
+The Admin portal will provide the ability to login with id and password and a mandatory 3-factor authentication with mobile OTP or Authentication app. 
+The Ael will have 2 types of userdmin Portal at high levs 
+* Super Admin – These users will have rights to access every part of the application along with the Users and access rights. They will have the ability to add or remove other users. They can add or remove others as super admin users.
+* Portal Users : The portal users will be created and managed by the super admin users. Portal users will be given access at the module level within the Admin portal by super users. 
+For example, some users might be able to access only customer booking data, while others may be able to look at both the customer booking and vendor listing modules. 
+The Admin Portal User profile will contain the following fields. This will be managed by Super Admin only. 
+1. First Name
+2. Last Name
+3. Designation
+4. Role (Text Field)
+5. Email Address
+6. Address
+7. Phone Number
+8. Password Change fields
+9. Remarks
+10. Modules the user has access too.
+Admin portal users can recover the password by entering the email address, a password reset link will be sent to the email id. Every password reset request will send an email to an email address. Ex: PCR@bandar.co.in.
+All Login activity will be logged into the database. No UI needed to access it. 
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A screenshot of a computer
+
+Description automatically generated 
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A screenshot of a computer
+
+Description automatically generated 
+  A screenshot of a computer
+
+Description automatically generated 
+
+
+Business Dashboard
+The business dashboard will showcase the state of the business and allows tracking of the business data in real time. 
+The system will display the following tabs along with KPI’s
+The Admin will be shown with three tabs on the screen with the KPIs and Analytics as described below. The data behind the graphs should be exportable to excel. 
+1. Customer 
+* Total Bookings (Filter by Date Range)
+* Total Revenue (Filter by Date range)
+* Table of Activity wise breakdown of booking revenue and count.
+* New Customer registered (Filter by date range)
+2. Business 
+* Total Customer (registered, guest)
+* Total Vendors registered.
+* Total Activities listed/waiting to be listed. 
+* Inquiries by Type (Vendor/Customer) by date
+* Booking Graph by date.
+* Total Customers and Revenue by Region, Activity Types (Tags)
+* Overall CSAT  and breakdown of score (Positive, Neutral, Negative) (Filter by customer region, activity, vendor) Positive – 4 and 5 Star, Neutral -3 Start, Negative, 2 and 1 start.  This will also include the process to trigger an email/text to ask for survey when the activity is complete. Customer can always go to any previous booking and fill a survey.
+* Revenue Breakdown (Tax, Vendor Paid, Platform fees etc)
+3. Vendor 
+* Table to revenue and booking by vendor.
+* New Vendors added By Date Graph
+* New Vendors registered (Filter by date range)
+* Top 5/10 Vendors by Revenue and bookings.
+* Top 5/10 Activites by bookings and revenue.
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A screenshot of a whiteboard
+
+Description automatically generated 
+
+The business dashboard will also have a reports section which will have the ability to create printable and exportable (to pdf and excel) reports. 
+The following reports can be created with the ability to filter the records. 
+1. Bookings 
+2. Payment to vendors
+3. Revenue summary reports
+4. Ratings report
+5. Etc. (More to be defined)
+Customers
+This module allows the admin to manage the customer related information, like customer profiles, customer badges and certificates and get access to customer related information. 
+The Admin will be able to search for a Customer by name, email address, or phone. 
+This page will be empty by default 
+The admin will be able to view and modify all the profile information of the customer and additional details which are listed below. The changes are logged into the database.
+A notification is sent into the notification log of the Admin Portal for each change. Notification will have following details. 
+* Joined On
+* No of activities taken
+* Certificates 
+* Badges
+* Login Activity – Devices, login location, login time and date, website or app
+* Past and Future booking of customer along with payment details. 
+* Bandar Credits (Bananas) 
+   * Admin will be able to add the credits to users wallet. 
+   * These credits will have an expiration date i.e. Admin will be able to set the expiration date for each credit. 
+   * The admin will be able to set the maximum usage limit for Credits for a booking 
+   * The admin will be able to set minimum amount that a user can add to the wallet
+ A screenshot of a computer
+
+Description automatically generated 
+
+
+
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A screenshot of a computer
+
+Description automatically generated 
+
+Vendors
+The vendors module allows the admin portal users to register, onboard and manage vendors and their activity listings. 
+Admin can Add, update and view Vendor details,
+Will be able to see two tabs on the screen 
+* Active Vendor (will see the list of l the vendors who have already enrolled with the client)
+* Request Pending (will be able to see the new requests from the vendors and will be able to approve or reject)
+
+
+- View Vendor details 
+- Will also be able to see documents of the vendor 
+- Add a new Vendor
+- Update details of existing Vendors
+- Remove Vendor
+- Seach Vendor based on name, email, phone, business name etc. 
+When a vendor is added (self or by admin) they are in pending queue. 
+Admin portal users will be able to approve vendors in the system after verifying all the content manually. There will be single stage approval for vendor information once all the required details of the vendor and documents uploaded have been verified. 
+The system will automatically generate and send an email in the event of either accepting or rejecting vendor requests or when vendors are made inactive(due to various reasons).
+Once approved the Vendor moves to the Active Vendor list. 
+For active vendors, admin users can see the associated activities and bookings (past and future) for the vendor. 
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A screenshot of a login form
+
+Description automatically generated 
+
+Notifications
+All notifications have a notification id, Category, Type, Text, Activity, Short Description, modified by, Modified time. 
+Modified by can be customer, vendor, system or Admin portal users. 
+Category is Vendor, Activity, User, System
+Type is the specific type of notification like – New user Added, User profile Changed, New Activity added, Activity Approved, etc. 
+Brief description provides a short text describing the event with more details like booking id, customer id, vendor id, activity id, or any other specific details which can be used to access the associated information. 
+Notification can be marked as read or unread and status as new, resolved, pending or unresolved. 
+Adventure Activity Listings
+The adventure activity details allow Admin Users to manage (add, modify, activate, deactivate, validate) activity details information. Each section of the activity listing, images, add-on, details, slots, discounted price, offers applicable, etc can be managed as has been detailed in the activity listing section. This will be in activity edit mode.
+The admin can also make a reservation/booking of an activity just like a customer would do. 
+Any change in the activity information will send a notification to the admin portal. The admin user can validate various sections of the activity with a checkbox, and for each section there will be a field to approve or reject it. Finally, there will be a checkbox ability for the entire activity which will list (make it go live) the activity and make it searchable. Only the approved section will be listed when it goes live. 
+Clone Activity: Activity can be cloned, in which case all the details will be copied to a new adventure activity, which is inactive. It can then be managed individually. 
+  
+
+For each activity Admin user can set the commission, amount, or percentage. This will be applied on top of the vendor price for activity listing. 
+This will be both ways, markup on vendor price or commission included in vendor price, whatever vendor is comfortable with.
+For each activity, further cost fields can be added to it dynamically. Each cost field will have a name (ex GST), brief description, fixed amount or % of amount of the listed value. 
+  
+
+Manage Activity Tags
+The admin users can pick tags that can be applied to the activity. The Tags as explained earlier will have the name, thumbnail and brief description. Multiple tags can be applied to activity. The Tags can also be added live from this panel if needed. The added tags can be “All” or “Admin-Only”. “All” tags can be used by Vendors to tag their activities when listing them. “Admin-only” tags can be used by Admin portal users. From the Manage activities page, tags can be applied in bulk to activities.
+Bandar Credits (Bananas)
+This page will allow admin to view Bandar credits for each customer and manage the credits, where they can add, remove, or change the credits. 
+Bananas are like points; the value of each Banana can be set in the Admin Panel. 
+   * Admin will be able to add the credits to user’s wallet. 
+   * These credits will have an expiration date i.e., Admin will be able to set the expiration date for each credit. 
+   * The admin will be able to set the maximum usage limit for Credits for a booking 
+   * The admin will be able to set minimum amount that a user can add to the wallet
+Bananas can be managed from Admin panel and can be assigned to any user. Currently the bananas will be credited manually or when a cancellation or modification happens, and user accepts to take the credits in form of bananas.
+Certificates and Badges 
+The admin will be able to manage certificates and badges for the activities 
+The admin will be able to define criteria for achieving the badges and certificate against each adventure 
+
+The admin will be able to categorize adventures and achievements to create different badges.
+The admin can upload certificate and badges image, certificate or badge name, and brief description. 
+The admin can assign a certificate or badge to an activity, which if completed by a customer will be automatically assigned to the customer. 
+Admin can also assign any badge or certificate to any user manually.
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+Booking Management
+The booking management page allows admin portal users to view, modify and cancel any booking. They can search booking by booking id, date, customer name, vendor name, activity name, customer contact details. 
+On this page admin can also search for any listed (Active) activity, and then perform the action of booking an activity with all the details. Admin will be able to see all the details like what a customer would see.
+Admin can manage payments for booking, and for new bookings can send a payment link to the customer to make payment and to confirm the payment and send the booking details just like when the customer makes the booking details and gets the confirmation.
+Admin can also send confirmation again on any email or mobile phone no. of a booking.
+  
+
+  
+
+  
+
+
+
+Inventory Management
+This is part of activity/booking management. Admin users can search for any activity (active or not) and can view or modify (delete or reserve) any inventory slot for that activity. This page gives them quick access to manage that directly, without going through all the steps which are needed for booking an activity.
+Further admin will get a comprehensive overview of the scheduled appointments for a specified period. This would include daily, weekly, or monthly Appointments
+- Admin can keep track of the availability of time slots provided by service providers for appointments.
+
+- The Admin will see the following Tabs 
+- Scheduled
+- Past 
+- If the Admin selects Scheduled tab then the list of upcoming appointments will be shown to the Admin, also the Admin can change the Inventory status to completed and can also add comments 
+- If the Admin selects Past Tab then all the past Appointments will be shown to the user 
+- Admins can manage available time slots, They can add or remove time slots, if needed through a update Inventory Button
+Promotions Management
+Promotions management allows Admin users to manage the promotions listed on the promotions page. The details are mentioned in the promotions section under Vendor app.
+They can add and modify the details of each promotion here. 
+  
+
+  
+
+
+
+Banner Management
+Banner management allows admin users to manage the advertisements and offers that appear on websites and mobile platforms for customers.  This is explained under the customer homepage section. 
+The banner will be of fixed size and will be selected by the admin. The size will be a fixed size Square, a short rectangle or a large rectangle. Each size will be different for mobile or web platform and will render accordingly. 
+The admin will also have an option to choose the activities or define a filter to which this banner will be applicable. On clicking the banner, the user will be taken to the list of those activites. 
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A screenshot of a form
+
+Description automatically generated 
+
+
+
+Customer homepage listing management
+This section refers to the listing that will display under the homepage under various categories as detailed under the customer application homepage details. 
+The admin will have the option to choose a listing which will be displayed under each section. The admin will also have the option to add a new section and add listings to it. 
+The listing displayed on the customer portal and horizontally scrollable. 
+The sections that we will start with are:
+1. Promoted Listings
+2. Most booked adventures
+3. Hot Destinations
+4. Hot Activities
+
+
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A screenshot of a computer
+
+Description automatically generated 
+
+Inquiry Management
+The Inquiry management section allows the admin to view the inquiries from both the vendors and the customers. 
+Admin can reply to the inquiry and change the status of the inquiry as detailed in the customer and vendor application sections. 
+Admin can also choose to forward and inquire (Customer inquiry to vendor, and vendor response to customer). Before forwarding they will have the option to modify the text of the inquiry. 
+ A screenshot of a computer screen
+
+Description automatically generated 
+
+ A screenshot of a computer screen
+
+Description automatically generated 
+
+ A screenshot of a computer screen
+
+Description automatically generated 
+
+Website Static Content Management
+This section allows admin to manage the static section of the customer facing website and vendor applications. 
+-Social media Links 
+-Terms and conditions 
+-Privacy policy 
+-About Us, Contact us
+-Other policies.
+- Blogs – This is where we can publish blogs, and this will show up under the blog section in the customer web portal only.
+The blogs will be written offline in word documents, the website will only provide the ability to publish the blogs and not to modify or manage the content of blogs. This will allow customers to browse a list of blogs, there will be ability to tag blogs.
+ A screenshot of a computer
+
+Description automatically generated 
+
+ A screenshot of a computer
+
+Description automatically generated 
+
+Discounts, Offers and Coupons
+This section allows the admin to manage the offers and coupons. Admin can add the details of coupons. For each coupon the admin will add details around the discount code to be used, a brief description of the coupon, active and expiry date, status, type of coupon, applicable to and calculation applicable to the coupon.
+We will need to create multiple options for applying coupons/offers/discounts based on different promotions being run at different times across the platform.
+
+
+1. Bank Dependent card/Emi offer/UPI/Payment wallet offer (May not happen in phase 1)
+2. Combination of some Bandar Coupon with qualifying criteria of using a certain bank/payment mode
+3. Bandar driven promotions – coupons codes, straight cashback, level-based staggering discounts, etc.
+   1. The way these will work is that Bandar Admin should be able to create various offers, promotions, coupon codes with specific time based and event-based validity and the same should then be applied on checkout page for customer. 
+   2.  Each coupon code will have specification of applicability on part of the total cart value – Ex: %age discount on activity price, %age discount on full cart value, %age discount on Bandar Fees, Fixed amount discount on cart value, fixed amount discount on Bandar Fees, discount only applicable on some activities on the cart depending on eligibility, etc. 
+
+
+The calculation could be a % discount or a flat discount, it can also be cashback in form of bananas
+
+
+Type of coupon can be Bandar offered, Vendor offered, Partner offered. 
+Applicable to can be “On Activity Price” or “On Bandar Fees”, If it is “On Activity Price”, The discount is applicable on the activity price before taxes and fees. Else the discount is applicable to the bandar fees only. 
+This module will also host the offers section, the details of which are not yet defined. 
+
+
+ A screenshot of a computer
+
+Description automatically generated 
+
+Payments
+This is where the payments will be managed to vendors. 
+The admin can choose a vendor, and it will list all the bookings and the financials details of all the bookings for that vendor. The breakdown of the cost of the booking will show for each booking along with tax details applicable as invoiced to customer. The listing will also show the booking details for each line item.
+Further admin can filter on the pending payment bookings. Filter ability based on vendor (id, name), activity (id, name), activity status (Cancelled, completed, refunded), date range. 
+Admin will check line by line item and can modify the final amount of payment to the vendor, enter a description field and then mark it for payment. 
+The payment will be sent in bulk to the vendor for all the marked line items and the line items will be moved into the paid category and cannot be modified any further. 
+The payment can be scheduled for a later date as well. 
+Add-Ons Management
+This section will allow admin to manage add-ons centrally.
+The add-on can be added, modified and deleted here. 
+Each add-on will have calculation on where it is applicable (per person on the booking or per activity irrespective of the persons on the booking), along with name, brief description, and thumbnail icon option and cost. 
+Admin can pick the activities to which a particular add-on is applicable along with an option for “All”, in which case that Add-on will appear on all the activities. 
+Cancellation Policy Management
+Cancellation policies as defined earlier in Vendor module can be managed from this module in Admin panel. 
+Admin users will have the ability to change or delete existing policies or add new policies and will be able to associate or disassociate policies for the listed activites from here. 
+Logging and Analytics 
+We should capture logging of page by visits and workflow logging and customer presence and drop-off for customers on the website. 
+Also log sessions/activity by various metrics like region, source etc. 
+This will only be logged, and no UI needed on Admin Panel. We will implement analytics around the customer journey in phase 2. Along with Google Analytics.
+
+
+Future Modules.
+1. Bandar Special Customer Experiences: Gives customer extra privileges like special lines, priority line, badge, certificate, photo, or welcome drink. The idea is to provide something extra for the customer to differentiate their experience due to their booking on bandar. 
+2. Integrate the Admin profile credentials with Microsoft Accounts.
+3. Forums
+4. Coupons Automation
+5. Badges and Certificate set automation
+6. Bananas offer Automation
+7. Fine Grained access for Admin and Vendor apps, with database level RBAC
+8. Gen AI search and Filter modules
+
+
+Confidential and NDA Authorized only.

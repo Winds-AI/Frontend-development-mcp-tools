@@ -14,6 +14,12 @@ Browser Tools MCP Extension enables AI tools to interact with your browser for e
 - **Connection health monitoring** API for autonomous operation oversight
 - **Streamlined discovery** with essential IP scanning for faster server detection
 
+**🤖 Recent Agent-Interaction Improvements:**
+- **Enhanced `analyzeApiCalls` tool** with "timestamp" parameter support
+- **Intelligent search suggestions** when no API calls found matching search terms
+- **Improved tool descriptions** with search strategy guidance for better agent understanding
+- **Better error recovery** with actionable suggestions instead of empty results
+
 **Perfect for extended AI development sessions where connection stability is critical!**
 
 ## Motivation
@@ -43,7 +49,7 @@ The following tools are available through the Browser Tools MCP server:
     *   **Description**: Analyzes API interactions between the frontend and backend by retrieving filtered network request details. This tool is useful for inspecting API calls to specific endpoints, debugging network errors and status codes, examining request/response payloads, investigating authentication headers, or monitoring AJAX requests. Results include timestamps to help distinguish between identical API calls made at different times.
     *   **Parameters**:
         *   `urlFilter` (string, required): A substring or pattern to filter request URLs.
-        *   `details` (array of strings, required): Specific details to retrieve for each request. Possible values include: `"url"`, `"method"`, `"status"`, `"requestHeaders"`, `"responseHeaders"`, `"requestBody"`, `"responseBody"`.
+        *   `details` (array of strings, required): Specific details to retrieve for each request. Possible values include: `"url"`, `"method"`, `"status"`, `"timestamp"`, `"requestHeaders"`, `"responseHeaders"`, `"requestBody"`, `"responseBody"`.
         *   `timeStart` (number, optional): A Unix timestamp (in milliseconds) to filter requests that occurred after this time.
         *   `timeEnd` (number, optional): A Unix timestamp (in milliseconds) to filter requests that occurred before this time.
         *   `orderBy` (string, optional, default: `"timestamp"`): The field to order results by. Possible values: `"timestamp"`, `"url"`.

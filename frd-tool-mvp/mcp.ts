@@ -730,222 +730,149 @@ server.tool(
   }
 );
 
-// In-memory store for FRD ingestion tasks
-interface IngestionTask {
-  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
-  message: string;
-  startTime: number;
-  endTime?: number;
-  documentPath?: string;
-  collectionName?: string;
-}
-const ingestionTasks: Record<string, IngestionTask> = {};
-
+// FRD Analysis Tool - Multimodal Context Extraction + Full Document LLM
 server.tool(
-  "ingestFrdDocument",
-  "Process and index documents (PDF, TXT, MD, CSV) into a vector database for AI retrieval. Returns a task ID to track processing status.",
+  "analyzeFrdDocument",
+  "Analyze FRD (Functional Requirements Document) by finding keyword contexts and performing comprehensive analysis with LLM. This tool processes the entire document (up to 40k tokens) to identify interconnected modules and implicit relationships. **How it works**: 1) Takes keywords provided by the LLM agent (who understands project context), 2) Finds keyword locations in the document with surrounding context, 3) Sends full document + highlighted contexts to LLM for comprehensive analysis of feature interconnections and dependencies. **Key benefit**: The calling LLM agent can provide contextually relevant keywords based on project history and structure.",
   {
-    documentPath: z.string().describe("Path to the FRD document file (txt, md, csv, pdf)."),
-    projectRoot: z.string().optional().describe("Optional override for project root; defaults to PROJECT_ROOT env or one level up from MCP server."),
-    collectionName: z.string().optional().default("frd_documents").describe("Qdrant collection name (default: frd_documents)."),
-    qdrantUrl: z.string().optional().default(process.env.QDRANT_URL || "http://localhost:6333").describe("Qdrant server URL (default: local Qdrant instance on port 6333, override with QDRANT_URL env var)."),
-    qdrantApiKey: z.string().optional().describe("Qdrant API Key (optional, will try to use QDRANT_API_KEY env var if not provided)."),
-    vectorSize: z.number().optional().default(768).describe("Vector size for embeddings (default: 768 for Gemini text-embedding-004).")
+    documentPath: z.string().describe("Path to the FRD text document (extracted from PDF/Word as plain text)."),
+    keywords: z.array(z.string()).describe("Array of keywords to search for in the document. The calling LLM should provide these based on the user's query and project context. Examples: ['booking', 'payment', 'admin', 'notification', 'room-management']"),
+    query: z.string().describe("The original user question or query about the FRD. This provides context for the analysis."),
+    contextWindow: z.number().optional().default(3).describe("Number of sentences before and after each keyword match to include as context (default: 3)."),
+    includeRelated: z.boolean().optional().default(true).describe("Whether to include analysis of related/interconnected modules even if not explicitly mentioned in query (default: true)."),
   },
   async (params) => {
-    const { documentPath, projectRoot: overrideRoot, collectionName, qdrantUrl, qdrantApiKey, vectorSize } = params;
-    const taskId = uuidv4();
+    const { documentPath, keywords, query, contextWindow = 3, includeRelated = true } = params;
 
-    // Resolve document path
-    const rootDir = overrideRoot || process.env.PROJECT_ROOT || path.resolve(__dirname, "..");
-    let absoluteDocumentPath = "";
-    if (path.isAbsolute(documentPath)) {
-      absoluteDocumentPath = documentPath;
-    } else {
-      const possiblePaths = [
-        path.resolve(process.cwd(), documentPath),
-        path.resolve(rootDir, documentPath)
-      ];
-      absoluteDocumentPath = possiblePaths.find(p => fs.existsSync(p)) || "";
-    }
-
-    if (!absoluteDocumentPath || !fs.existsSync(absoluteDocumentPath)) {
-      return {
-        content: [{ type: "text", text: `Error: Document not found at path: ${documentPath}` }],
-        isError: true,
-      };
-    }
-
-    // Initialize task tracking
-    ingestionTasks[taskId] = {
-      status: "PENDING",
-      message: "Document ingestion initiated.",
-      startTime: Date.now(),
-      documentPath: absoluteDocumentPath,
-      collectionName,
-    };
-
-    // Perform ingestion asynchronously using an IIFE
-    (async () => {
-      try {
-        // Ensure GOOGLE_API_KEY is available for LlamaIndex operations (embeddings, LLM)
-        if (!GOOGLE_API_KEY_GLOBAL) { // Check the globally stored key status
-          throw new Error("GOOGLE_API_KEY environment variable not set. LlamaIndex cannot function.");
-        }
-
-        ingestionTasks[taskId].message = "Preparing for document processing...";
-        console.log(`Task ${taskId}: Preparing to process ${absoluteDocumentPath}`);
-
-        let loadedDocuments: Document[];
-        const fileExt = path.extname(absoluteDocumentPath).toLowerCase();
-
-        ingestionTasks[taskId].message = `Reading ${fileExt} file...`;
-        console.log(`Task ${taskId}: Reading ${fileExt} file: ${absoluteDocumentPath}`);
-
-        if (fileExt === ".pdf") {
-          const LLAMA_CLOUD_API_KEY_LOCAL = process.env.LLAMA_CLOUD_API_KEY;
-          if (!LLAMA_CLOUD_API_KEY_LOCAL) {
-            throw new Error("LLAMA_CLOUD_API_KEY environment variable not set. Required for PDF processing with LlamaParse.");
-          }
-          const llamaParseReader = new LlamaParseReader({
-            apiKey: LLAMA_CLOUD_API_KEY_LOCAL,
-            resultType: "json", // Changed for image extraction
-            // parsingInstruction: "...", // parsingInstruction might need adjustment or removal for JSON mode
-            // For now, let's see the default JSON output structure.
-          });
-          const rawJsonResponse = await llamaParseReader.loadData(absoluteDocumentPath);
-          console.log(`Task ${taskId}: LlamaParse JSON response structure:`, JSON.stringify(rawJsonResponse, null, 2));
-
-          loadedDocuments = []; // Initialize for Document and ImageNode objects
-          // Placeholder loop - to be refined based on actual JSON structure
-          if (Array.isArray(rawJsonResponse)) {
-            for (const item of rawJsonResponse) {
-              // TODO: Inspect 'item' structure and create Document or ImageNode
-              // For now, assuming items might be simple Document-like objects or need transformation
-              if (item && typeof item.text === 'string') { // Basic check for text content
-                loadedDocuments.push(new Document({ text: item.text, id_: item.id_ || uuidv4() }));
-              } else {
-                // Potentially an image object or other structure
-                console.log(`Task ${taskId}: Unhandled item type in LlamaParse JSON:`, item);
-                // loadedDocuments.push(new ImageNode({ image: item.imageUrl, id_: item.id_ || uuidv4() })); // Example if item has imageUrl
-              }
-            }
-          } else if (rawJsonResponse && typeof (rawJsonResponse as any).text === 'string'){
-            // Handle if the entire response is a single document object
-            loadedDocuments.push(new Document({ text: (rawJsonResponse as any).text, id_: (rawJsonResponse as any).id_ || uuidv4() }));
-          } else {
-            console.error(`Task ${taskId}: Unexpected LlamaParse JSON response format.`);
-            // loadedDocuments = []; // Ensure it's an empty array if parsing fails
-          }
-          
-          // If no documents were effectively processed, it's an issue.
-          if (loadedDocuments.length === 0 && Array.isArray(rawJsonResponse) && rawJsonResponse.length > 0) {
-             console.warn(`Task ${taskId}: LlamaParse returned data, but it was not processed into Document/ImageNode objects. Check JSON structure.`);
-          }
-
-        // USER: The following CSV and MD blocks are temporarily commented out.
-        // } else if (fileExt === ".csv") {
-        //   const csvReader = new PapaCSVReader(); // Ensure PapaCSVReader is correctly imported
-        //   loadedDocuments = await csvReader.loadData(absoluteDocumentPath);
-        // } else if (fileExt === ".md") {
-        //   const mdReader = new MarkdownReader(); // Ensure MarkdownReader is correctly imported
-        //   loadedDocuments = await mdReader.loadData(absoluteDocumentPath);
-        } else if (fileExt === ".txt") {
-          const fileContent = fs.readFileSync(absoluteDocumentPath, "utf-8");
-          loadedDocuments = [new Document({ text: fileContent, id_: absoluteDocumentPath })];
-        } else {
-          throw new Error(`Unsupported file type: ${fileExt}`);
-        }
-
-        if (!loadedDocuments || loadedDocuments.length === 0) {
-          throw new Error("No documents were extracted from the file.");
-        }
-        ingestionTasks[taskId].message = `${loadedDocuments.length} document(s) extracted. Connecting to Qdrant...`;
-        console.log(`Task ${taskId}: ${loadedDocuments.length} document(s) extracted.`);
-
-        const qdrantClient = new QdrantClient({ url: qdrantUrl, apiKey: qdrantApiKey });
-
-        ingestionTasks[taskId].message = "Verifying Qdrant collection...";
-        console.log(`Task ${taskId}: Verifying Qdrant collection '${collectionName}' at ${qdrantUrl}`);
-        const collectionsList = await qdrantClient.getCollections();
-        const collectionExists = collectionsList.collections.some(c => c.name === collectionName);
-
-        if (!collectionExists) {
-          ingestionTasks[taskId].message = `Collection '${collectionName}' not found. Creating...`;
-          console.log(`Task ${taskId}: Qdrant collection '${collectionName}' not found. Creating with vector size ${vectorSize}.`);
-          await qdrantClient.createCollection(collectionName, { vectors: { size: vectorSize, distance: "Cosine" } });
-        } else {
-          console.log(`Task ${taskId}: Qdrant collection '${collectionName}' already exists.`);
-        }
-
-        const llamaQdrantStore = new LlamaIndexQdrantStore({
-          client: qdrantClient,
-          collectionName: collectionName,
-        });
-
-        ingestionTasks[taskId].message = "Indexing documents into Qdrant...";
-        console.log(`Task ${taskId}: Indexing ${loadedDocuments.length} documents...`);
-        
-        // Using global Settings which includes embedModel and llm
-        await VectorStoreIndex.fromDocuments(loadedDocuments, {
-          storageContext: {
-            vectorStores: {
-              [ObjectType.TEXT]: llamaQdrantStore,
-              [ObjectType.IMAGE]: llamaQdrantStore, // Added for image embeddings (can use same store or a different one)
-            }, // Qdrant store for vectors
-            docStore: new SimpleDocumentStore(),     // In-memory document store
-            indexStore: new SimpleIndexStore(),    // In-memory index store
-          }
-          // serviceContext: Settings, // Removed: Global Settings will be used by default
-        });
-
-        ingestionTasks[taskId] = { ...ingestionTasks[taskId], status: "COMPLETED", message: "Ingestion completed successfully.", endTime: Date.now() };
-        console.log(`Task ${taskId}: Ingestion completed successfully for ${absoluteDocumentPath} into ${collectionName}.`);
-
-      } catch (error: any) {
-        console.error(`Task ${taskId}: Error during ingestion for ${absoluteDocumentPath}:`, error);
-        const errorMessage = error.message || "An unknown error occurred during ingestion.";
-        ingestionTasks[taskId] = { ...ingestionTasks[taskId], status: "FAILED", message: errorMessage, endTime: Date.now() };
+    try {
+      // Validate document exists
+      if (!fs.existsSync(documentPath)) {
+        return {
+          content: [{ type: "text", text: `Error: Document not found at path: ${documentPath}` }],
+          isError: true,
+        };
       }
-    })(); // End of IIFE
 
-    // Synchronous return for the tool call
-    return {
-      content: [{
-        type: "text",
-        text: `Ingestion task ${taskId} started. Status: PENDING. Document: ${absoluteDocumentPath}, Collection: ${collectionName}. Use getIngestionTaskStatus with taskId to check progress.`
-      }],
-      _meta: { taskId } 
-    };
-  }
-);
+      // Read the document
+      const documentContent = fs.readFileSync(documentPath, 'utf-8');
+      
+      // Check token count (rough estimate: 1 token ≈ 4 characters)
+      const estimatedTokens = Math.ceil(documentContent.length / 4);
+      if (estimatedTokens > 45000) {
+        return {
+          content: [{ type: "text", text: `Error: Document too large (${estimatedTokens} estimated tokens). Please limit to ~40k tokens (160,000 characters).` }],
+          isError: true,
+        };
+      }
 
-server.tool(
-  "getFrdIngestionStatus",
-  "Check the status of a document ingestion task using the task ID returned from ingestFrdDocument.",
-  {
-    taskId: z.string().describe("The ID of the ingestion task."),
-  },
-  async ({ taskId }) => {
-    const task = ingestionTasks[taskId];
-    if (!task) {
+      // Find keyword contexts in document
+      const contexts = findKeywordContexts(documentContent, keywords, contextWindow);
+      
+      // Prepare prompt for LLM analysis
+      const analysisPrompt = buildAnalysisPrompt(documentContent, query, contexts, includeRelated);
+      
+      // Return the analysis structure for LLM processing
+      const response = {
+        query: query,
+        documentPath: documentPath,
+        documentStats: {
+          estimatedTokens: estimatedTokens,
+          totalCharacters: documentContent.length,
+          keywordsProvided: keywords.length,
+          contextMatches: contexts.length
+        },
+        providedKeywords: keywords,
+        keywordContexts: contexts,
+        analysisPrompt: analysisPrompt.substring(0, 1000) + "...", // Show first 1000 chars of prompt
+        fullAnalysisPrompt: analysisPrompt, // Full prompt for LLM processing
+        note: "🎯 Ready for LLM analysis: Keywords provided by agent, contexts extracted, analysis prompt prepared."
+      };
+
       return {
-        content: [{ type: "text", text: `No task found with ID: ${taskId}` }],
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(response, null, 2),
+          },
+        ],
+      };
+
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: `Error analyzing FRD document: ${error}` }],
         isError: true,
       };
     }
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(task, null, 2),
-        },
-      ],
-    };
   }
 );
 
-// Function to load Swagger documentation (either from URL or file)
+// Helper function to find keyword contexts in document
+function findKeywordContexts(document: string, keywords: string[], contextWindow: number): Array<{keyword: string, context: string, position: number}> {
+  const contexts: Array<{keyword: string, context: string, position: number}> = [];
+  const sentences = document.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 0);
+  
+  keywords.forEach(keyword => {
+    sentences.forEach((sentence, index) => {
+      if (sentence.toLowerCase().includes(keyword.toLowerCase())) {
+        const startIndex = Math.max(0, index - contextWindow);
+        const endIndex = Math.min(sentences.length - 1, index + contextWindow);
+        const contextSentences = sentences.slice(startIndex, endIndex + 1);
+        
+        contexts.push({
+          keyword: keyword,
+          context: contextSentences.join('. '),
+          position: index
+        });
+      }
+    });
+  });
+  
+  return contexts;
+}
+
+// Helper function to build analysis prompt for LLM
+function buildAnalysisPrompt(document: string, query: string, contexts: Array<{keyword: string, context: string, position: number}>, includeRelated: boolean): string {
+  let prompt = `# FRD Document Analysis Request
+
+## User Query
+${query}
+
+## Document Analysis Instructions
+You are analyzing a Functional Requirements Document (FRD) written by non-technical clients. Focus on:
+1. **Interconnectivity**: Identify how different modules/features connect to each other
+2. **Implicit Relationships**: Find dependencies not explicitly stated
+3. **Complete Feature Scope**: For any feature mentioned, identify ALL related components needed
+4. **Technical Translation**: Convert business language into technical requirements
+
+## Keyword Contexts Found
+`;
+
+  contexts.forEach((ctx, i) => {
+    prompt += `\n### Context ${i + 1} (Keyword: "${ctx.keyword}")
+${ctx.context}
+`;
+  });
+
+  if (includeRelated) {
+    prompt += `\n## Analysis Focus
+When analyzing the query, please identify:
+- Direct feature requirements
+- Related admin/management features  
+- Database/API requirements
+- UI/UX implications
+- Integration dependencies
+- Workflow connections
+
+`;
+  }
+
+  prompt += `\n## Full Document Content
+${document}
+
+## Please provide comprehensive analysis addressing the user's query while highlighting interconnected modules and dependencies.`;
+
+  return prompt;
+}// Function to load Swagger documentation (either from URL or file)
 async function loadSwaggerDoc(swaggerSource: string): Promise<any> {
   try {
     // Check if it's a URL
