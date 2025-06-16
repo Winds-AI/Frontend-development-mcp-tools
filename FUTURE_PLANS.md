@@ -1,10 +1,10 @@
-If you are interested in the future of this project, please go to https://windsurf.canny.io/feature-requests, search for these requests, and upvote them.
+#### If you are interested in the future of this project, please go to [https://windsurf.canny.io/feature-requests](https://windsurf.canny.io/feature-requests), search for these requests and upvote them so we can build upon this tool more.
 
 Feature Requests:
+
 - Show memories retrieved based on prompt
 - Switch the tool flow from predefined tools to code execution tool
 - Add custom model selection for tool call
-- Please add a analyze image toolcall
 - Prompt field is resetted
 - Add a wait time tool call that has a check button to continue when I see fit
 
@@ -24,7 +24,7 @@ My initial thought is that the Windsurf agent will locate all the necessary file
 
 *This will require a lot of Windsurf credits for researching and optimizing, so I am postponing this until I gather some money to spend on this one.*
 
-## Advanced FRD Ingestion and Intelligent Retrieval
+## Advanced FRD Ingestion and Intelligent Retrieval OR I can shift to keyword based retrieval ( without a need of a Vector DB )on the FRD document ( sounds simple but it has potential in my initial testing)
 
 Another future set of tools that I plan to introduce are tools that ingest Functional Requirement Documents (FRDs) into a vector database by properly chunking them. We will be able to check its status, and the IDE agent can call this tool to understand what the requirements are and work accordingly.
 
@@ -45,5 +45,3 @@ Till now, I have focused on API integration and to work you have to have compone
 I believe these future enhancements will significantly improve the capabilities of AI-assisted frontend development.
 
 Guys, please suggest more cost-friendly ideas😭 so that I can work on those.
-
-

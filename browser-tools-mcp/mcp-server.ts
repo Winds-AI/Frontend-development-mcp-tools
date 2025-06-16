@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import path from "path";
@@ -730,220 +728,220 @@ server.tool(
   }
 );
 
-// In-memory store for FRD ingestion tasks
-interface IngestionTask {
-  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
-  message: string;
-  startTime: number;
-  endTime?: number;
-  documentPath?: string;
-  collectionName?: string;
-}
-const ingestionTasks: Record<string, IngestionTask> = {};
+// // In-memory store for FRD ingestion tasks
+// interface IngestionTask {
+//   status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+//   message: string;
+//   startTime: number;
+//   endTime?: number;
+//   documentPath?: string;
+//   collectionName?: string;
+// }
+// const ingestionTasks: Record<string, IngestionTask> = {};
 
-server.tool(
-  "ingestFrdDocument",
-  "Process and index documents (PDF, TXT, MD, CSV) into a vector database for AI retrieval. Returns a task ID to track processing status.",
-  {
-    documentPath: z.string().describe("Path to the FRD document file (txt, md, csv, pdf)."),
-    projectRoot: z.string().optional().describe("Optional override for project root; defaults to PROJECT_ROOT env or one level up from MCP server."),
-    collectionName: z.string().optional().default("frd_documents").describe("Qdrant collection name (default: frd_documents)."),
-    qdrantUrl: z.string().optional().default(process.env.QDRANT_URL || "http://localhost:6333").describe("Qdrant server URL (default: local Qdrant instance on port 6333, override with QDRANT_URL env var)."),
-    qdrantApiKey: z.string().optional().describe("Qdrant API Key (optional, will try to use QDRANT_API_KEY env var if not provided)."),
-    vectorSize: z.number().optional().default(768).describe("Vector size for embeddings (default: 768 for Gemini text-embedding-004).")
-  },
-  async (params) => {
-    const { documentPath, projectRoot: overrideRoot, collectionName, qdrantUrl, qdrantApiKey, vectorSize } = params;
-    const taskId = uuidv4();
+// server.tool(
+//   "ingestFrdDocument",
+//   "Process and index documents (PDF, TXT, MD, CSV) into a vector database for AI retrieval. Returns a task ID to track processing status.",
+//   {
+//     documentPath: z.string().describe("Path to the FRD document file (txt, md, csv, pdf)."),
+//     projectRoot: z.string().optional().describe("Optional override for project root; defaults to PROJECT_ROOT env or one level up from MCP server."),
+//     collectionName: z.string().optional().default("frd_documents").describe("Qdrant collection name (default: frd_documents)."),
+//     qdrantUrl: z.string().optional().default(process.env.QDRANT_URL || "http://localhost:6333").describe("Qdrant server URL (default: local Qdrant instance on port 6333, override with QDRANT_URL env var)."),
+//     qdrantApiKey: z.string().optional().describe("Qdrant API Key (optional, will try to use QDRANT_API_KEY env var if not provided)."),
+//     vectorSize: z.number().optional().default(768).describe("Vector size for embeddings (default: 768 for Gemini text-embedding-004).")
+//   },
+//   async (params) => {
+//     const { documentPath, projectRoot: overrideRoot, collectionName, qdrantUrl, qdrantApiKey, vectorSize } = params;
+//     const taskId = uuidv4();
 
-    // Resolve document path
-    const rootDir = overrideRoot || process.env.PROJECT_ROOT || path.resolve(__dirname, "..");
-    let absoluteDocumentPath = "";
-    if (path.isAbsolute(documentPath)) {
-      absoluteDocumentPath = documentPath;
-    } else {
-      const possiblePaths = [
-        path.resolve(process.cwd(), documentPath),
-        path.resolve(rootDir, documentPath)
-      ];
-      absoluteDocumentPath = possiblePaths.find(p => fs.existsSync(p)) || "";
-    }
+//     // Resolve document path
+//     const rootDir = overrideRoot || process.env.PROJECT_ROOT || path.resolve(__dirname, "..");
+//     let absoluteDocumentPath = "";
+//     if (path.isAbsolute(documentPath)) {
+//       absoluteDocumentPath = documentPath;
+//     } else {
+//       const possiblePaths = [
+//         path.resolve(process.cwd(), documentPath),
+//         path.resolve(rootDir, documentPath)
+//       ];
+//       absoluteDocumentPath = possiblePaths.find(p => fs.existsSync(p)) || "";
+//     }
 
-    if (!absoluteDocumentPath || !fs.existsSync(absoluteDocumentPath)) {
-      return {
-        content: [{ type: "text", text: `Error: Document not found at path: ${documentPath}` }],
-        isError: true,
-      };
-    }
+//     if (!absoluteDocumentPath || !fs.existsSync(absoluteDocumentPath)) {
+//       return {
+//         content: [{ type: "text", text: `Error: Document not found at path: ${documentPath}` }],
+//         isError: true,
+//       };
+//     }
 
-    // Initialize task tracking
-    ingestionTasks[taskId] = {
-      status: "PENDING",
-      message: "Document ingestion initiated.",
-      startTime: Date.now(),
-      documentPath: absoluteDocumentPath,
-      collectionName,
-    };
+//     // Initialize task tracking
+//     ingestionTasks[taskId] = {
+//       status: "PENDING",
+//       message: "Document ingestion initiated.",
+//       startTime: Date.now(),
+//       documentPath: absoluteDocumentPath,
+//       collectionName,
+//     };
 
-    // Perform ingestion asynchronously using an IIFE
-    (async () => {
-      try {
-        // Ensure GOOGLE_API_KEY is available for LlamaIndex operations (embeddings, LLM)
-        if (!GOOGLE_API_KEY_GLOBAL) { // Check the globally stored key status
-          throw new Error("GOOGLE_API_KEY environment variable not set. LlamaIndex cannot function.");
-        }
+//     // Perform ingestion asynchronously using an IIFE
+//     (async () => {
+//       try {
+//         // Ensure GOOGLE_API_KEY is available for LlamaIndex operations (embeddings, LLM)
+//         if (!GOOGLE_API_KEY_GLOBAL) { // Check the globally stored key status
+//           throw new Error("GOOGLE_API_KEY environment variable not set. LlamaIndex cannot function.");
+//         }
 
-        ingestionTasks[taskId].message = "Preparing for document processing...";
-        console.log(`Task ${taskId}: Preparing to process ${absoluteDocumentPath}`);
+//         ingestionTasks[taskId].message = "Preparing for document processing...";
+//         console.log(`Task ${taskId}: Preparing to process ${absoluteDocumentPath}`);
 
-        let loadedDocuments: Document[];
-        const fileExt = path.extname(absoluteDocumentPath).toLowerCase();
+//         let loadedDocuments: Document[];
+//         const fileExt = path.extname(absoluteDocumentPath).toLowerCase();
 
-        ingestionTasks[taskId].message = `Reading ${fileExt} file...`;
-        console.log(`Task ${taskId}: Reading ${fileExt} file: ${absoluteDocumentPath}`);
+//         ingestionTasks[taskId].message = `Reading ${fileExt} file...`;
+//         console.log(`Task ${taskId}: Reading ${fileExt} file: ${absoluteDocumentPath}`);
 
-        if (fileExt === ".pdf") {
-          const LLAMA_CLOUD_API_KEY_LOCAL = process.env.LLAMA_CLOUD_API_KEY;
-          if (!LLAMA_CLOUD_API_KEY_LOCAL) {
-            throw new Error("LLAMA_CLOUD_API_KEY environment variable not set. Required for PDF processing with LlamaParse.");
-          }
-          const llamaParseReader = new LlamaParseReader({
-            apiKey: LLAMA_CLOUD_API_KEY_LOCAL,
-            resultType: "json", // Changed for image extraction
-            // parsingInstruction: "...", // parsingInstruction might need adjustment or removal for JSON mode
-            // For now, let's see the default JSON output structure.
-          });
-          const rawJsonResponse = await llamaParseReader.loadData(absoluteDocumentPath);
-          console.log(`Task ${taskId}: LlamaParse JSON response structure:`, JSON.stringify(rawJsonResponse, null, 2));
+//         if (fileExt === ".pdf") {
+//           const LLAMA_CLOUD_API_KEY_LOCAL = process.env.LLAMA_CLOUD_API_KEY;
+//           if (!LLAMA_CLOUD_API_KEY_LOCAL) {
+//             throw new Error("LLAMA_CLOUD_API_KEY environment variable not set. Required for PDF processing with LlamaParse.");
+//           }
+//           const llamaParseReader = new LlamaParseReader({
+//             apiKey: LLAMA_CLOUD_API_KEY_LOCAL,
+//             resultType: "json", // Changed for image extraction
+//             // parsingInstruction: "...", // parsingInstruction might need adjustment or removal for JSON mode
+//             // For now, let's see the default JSON output structure.
+//           });
+//           const rawJsonResponse = await llamaParseReader.loadData(absoluteDocumentPath);
+//           console.log(`Task ${taskId}: LlamaParse JSON response structure:`, JSON.stringify(rawJsonResponse, null, 2));
 
-          loadedDocuments = []; // Initialize for Document and ImageNode objects
-          // Placeholder loop - to be refined based on actual JSON structure
-          if (Array.isArray(rawJsonResponse)) {
-            for (const item of rawJsonResponse) {
-              // TODO: Inspect 'item' structure and create Document or ImageNode
-              // For now, assuming items might be simple Document-like objects or need transformation
-              if (item && typeof item.text === 'string') { // Basic check for text content
-                loadedDocuments.push(new Document({ text: item.text, id_: item.id_ || uuidv4() }));
-              } else {
-                // Potentially an image object or other structure
-                console.log(`Task ${taskId}: Unhandled item type in LlamaParse JSON:`, item);
-                // loadedDocuments.push(new ImageNode({ image: item.imageUrl, id_: item.id_ || uuidv4() })); // Example if item has imageUrl
-              }
-            }
-          } else if (rawJsonResponse && typeof (rawJsonResponse as any).text === 'string'){
-            // Handle if the entire response is a single document object
-            loadedDocuments.push(new Document({ text: (rawJsonResponse as any).text, id_: (rawJsonResponse as any).id_ || uuidv4() }));
-          } else {
-            console.error(`Task ${taskId}: Unexpected LlamaParse JSON response format.`);
-            // loadedDocuments = []; // Ensure it's an empty array if parsing fails
-          }
+//           loadedDocuments = []; // Initialize for Document and ImageNode objects
+//           // Placeholder loop - to be refined based on actual JSON structure
+//           if (Array.isArray(rawJsonResponse)) {
+//             for (const item of rawJsonResponse) {
+//               // TODO: Inspect 'item' structure and create Document or ImageNode
+//               // For now, assuming items might be simple Document-like objects or need transformation
+//               if (item && typeof item.text === 'string') { // Basic check for text content
+//                 loadedDocuments.push(new Document({ text: item.text, id_: item.id_ || uuidv4() }));
+//               } else {
+//                 // Potentially an image object or other structure
+//                 console.log(`Task ${taskId}: Unhandled item type in LlamaParse JSON:`, item);
+//                 // loadedDocuments.push(new ImageNode({ image: item.imageUrl, id_: item.id_ || uuidv4() })); // Example if item has imageUrl
+//               }
+//             }
+//           } else if (rawJsonResponse && typeof (rawJsonResponse as any).text === 'string'){
+//             // Handle if the entire response is a single document object
+//             loadedDocuments.push(new Document({ text: (rawJsonResponse as any).text, id_: (rawJsonResponse as any).id_ || uuidv4() }));
+//           } else {
+//             console.error(`Task ${taskId}: Unexpected LlamaParse JSON response format.`);
+//             // loadedDocuments = []; // Ensure it's an empty array if parsing fails
+//           }
           
-          // If no documents were effectively processed, it's an issue.
-          if (loadedDocuments.length === 0 && Array.isArray(rawJsonResponse) && rawJsonResponse.length > 0) {
-             console.warn(`Task ${taskId}: LlamaParse returned data, but it was not processed into Document/ImageNode objects. Check JSON structure.`);
-          }
+//           // If no documents were effectively processed, it's an issue.
+//           if (loadedDocuments.length === 0 && Array.isArray(rawJsonResponse) && rawJsonResponse.length > 0) {
+//              console.warn(`Task ${taskId}: LlamaParse returned data, but it was not processed into Document/ImageNode objects. Check JSON structure.`);
+//           }
 
-        // USER: The following CSV and MD blocks are temporarily commented out.
-        // } else if (fileExt === ".csv") {
-        //   const csvReader = new PapaCSVReader(); // Ensure PapaCSVReader is correctly imported
-        //   loadedDocuments = await csvReader.loadData(absoluteDocumentPath);
-        // } else if (fileExt === ".md") {
-        //   const mdReader = new MarkdownReader(); // Ensure MarkdownReader is correctly imported
-        //   loadedDocuments = await mdReader.loadData(absoluteDocumentPath);
-        } else if (fileExt === ".txt") {
-          const fileContent = fs.readFileSync(absoluteDocumentPath, "utf-8");
-          loadedDocuments = [new Document({ text: fileContent, id_: absoluteDocumentPath })];
-        } else {
-          throw new Error(`Unsupported file type: ${fileExt}`);
-        }
+//         // USER: The following CSV and MD blocks are temporarily commented out.
+//         // } else if (fileExt === ".csv") {
+//         //   const csvReader = new PapaCSVReader(); // Ensure PapaCSVReader is correctly imported
+//         //   loadedDocuments = await csvReader.loadData(absoluteDocumentPath);
+//         // } else if (fileExt === ".md") {
+//         //   const mdReader = new MarkdownReader(); // Ensure MarkdownReader is correctly imported
+//         //   loadedDocuments = await mdReader.loadData(absoluteDocumentPath);
+//         } else if (fileExt === ".txt") {
+//           const fileContent = fs.readFileSync(absoluteDocumentPath, "utf-8");
+//           loadedDocuments = [new Document({ text: fileContent, id_: absoluteDocumentPath })];
+//         } else {
+//           throw new Error(`Unsupported file type: ${fileExt}`);
+//         }
 
-        if (!loadedDocuments || loadedDocuments.length === 0) {
-          throw new Error("No documents were extracted from the file.");
-        }
-        ingestionTasks[taskId].message = `${loadedDocuments.length} document(s) extracted. Connecting to Qdrant...`;
-        console.log(`Task ${taskId}: ${loadedDocuments.length} document(s) extracted.`);
+//         if (!loadedDocuments || loadedDocuments.length === 0) {
+//           throw new Error("No documents were extracted from the file.");
+//         }
+//         ingestionTasks[taskId].message = `${loadedDocuments.length} document(s) extracted. Connecting to Qdrant...`;
+//         console.log(`Task ${taskId}: ${loadedDocuments.length} document(s) extracted.`);
 
-        const qdrantClient = new QdrantClient({ url: qdrantUrl, apiKey: qdrantApiKey });
+//         const qdrantClient = new QdrantClient({ url: qdrantUrl, apiKey: qdrantApiKey });
 
-        ingestionTasks[taskId].message = "Verifying Qdrant collection...";
-        console.log(`Task ${taskId}: Verifying Qdrant collection '${collectionName}' at ${qdrantUrl}`);
-        const collectionsList = await qdrantClient.getCollections();
-        const collectionExists = collectionsList.collections.some(c => c.name === collectionName);
+//         ingestionTasks[taskId].message = "Verifying Qdrant collection...";
+//         console.log(`Task ${taskId}: Verifying Qdrant collection '${collectionName}' at ${qdrantUrl}`);
+//         const collectionsList = await qdrantClient.getCollections();
+//         const collectionExists = collectionsList.collections.some(c => c.name === collectionName);
 
-        if (!collectionExists) {
-          ingestionTasks[taskId].message = `Collection '${collectionName}' not found. Creating...`;
-          console.log(`Task ${taskId}: Qdrant collection '${collectionName}' not found. Creating with vector size ${vectorSize}.`);
-          await qdrantClient.createCollection(collectionName, { vectors: { size: vectorSize, distance: "Cosine" } });
-        } else {
-          console.log(`Task ${taskId}: Qdrant collection '${collectionName}' already exists.`);
-        }
+//         if (!collectionExists) {
+//           ingestionTasks[taskId].message = `Collection '${collectionName}' not found. Creating...`;
+//           console.log(`Task ${taskId}: Qdrant collection '${collectionName}' not found. Creating with vector size ${vectorSize}.`);
+//           await qdrantClient.createCollection(collectionName, { vectors: { size: vectorSize, distance: "Cosine" } });
+//         } else {
+//           console.log(`Task ${taskId}: Qdrant collection '${collectionName}' already exists.`);
+//         }
 
-        const llamaQdrantStore = new LlamaIndexQdrantStore({
-          client: qdrantClient,
-          collectionName: collectionName,
-        });
+//         const llamaQdrantStore = new LlamaIndexQdrantStore({
+//           client: qdrantClient,
+//           collectionName: collectionName,
+//         });
 
-        ingestionTasks[taskId].message = "Indexing documents into Qdrant...";
-        console.log(`Task ${taskId}: Indexing ${loadedDocuments.length} documents...`);
+//         ingestionTasks[taskId].message = "Indexing documents into Qdrant...";
+//         console.log(`Task ${taskId}: Indexing ${loadedDocuments.length} documents...`);
         
-        // Using global Settings which includes embedModel and llm
-        await VectorStoreIndex.fromDocuments(loadedDocuments, {
-          storageContext: {
-            vectorStores: {
-              [ObjectType.TEXT]: llamaQdrantStore,
-              [ObjectType.IMAGE]: llamaQdrantStore, // Added for image embeddings (can use same store or a different one)
-            }, // Qdrant store for vectors
-            docStore: new SimpleDocumentStore(),     // In-memory document store
-            indexStore: new SimpleIndexStore(),    // In-memory index store
-          }
-          // serviceContext: Settings, // Removed: Global Settings will be used by default
-        });
+//         // Using global Settings which includes embedModel and llm
+//         await VectorStoreIndex.fromDocuments(loadedDocuments, {
+//           storageContext: {
+//             vectorStores: {
+//               [ObjectType.TEXT]: llamaQdrantStore,
+//               [ObjectType.IMAGE]: llamaQdrantStore, // Added for image embeddings (can use same store or a different one)
+//             }, // Qdrant store for vectors
+//             docStore: new SimpleDocumentStore(),     // In-memory document store
+//             indexStore: new SimpleIndexStore(),    // In-memory index store
+//           }
+//           // serviceContext: Settings, // Removed: Global Settings will be used by default
+//         });
 
-        ingestionTasks[taskId] = { ...ingestionTasks[taskId], status: "COMPLETED", message: "Ingestion completed successfully.", endTime: Date.now() };
-        console.log(`Task ${taskId}: Ingestion completed successfully for ${absoluteDocumentPath} into ${collectionName}.`);
+//         ingestionTasks[taskId] = { ...ingestionTasks[taskId], status: "COMPLETED", message: "Ingestion completed successfully.", endTime: Date.now() };
+//         console.log(`Task ${taskId}: Ingestion completed successfully for ${absoluteDocumentPath} into ${collectionName}.`);
 
-      } catch (error: any) {
-        console.error(`Task ${taskId}: Error during ingestion for ${absoluteDocumentPath}:`, error);
-        const errorMessage = error.message || "An unknown error occurred during ingestion.";
-        ingestionTasks[taskId] = { ...ingestionTasks[taskId], status: "FAILED", message: errorMessage, endTime: Date.now() };
-      }
-    })(); // End of IIFE
+//       } catch (error: any) {
+//         console.error(`Task ${taskId}: Error during ingestion for ${absoluteDocumentPath}:`, error);
+//         const errorMessage = error.message || "An unknown error occurred during ingestion.";
+//         ingestionTasks[taskId] = { ...ingestionTasks[taskId], status: "FAILED", message: errorMessage, endTime: Date.now() };
+//       }
+//     })(); // End of IIFE
 
-    // Synchronous return for the tool call
-    return {
-      content: [{
-        type: "text",
-        text: `Ingestion task ${taskId} started. Status: PENDING. Document: ${absoluteDocumentPath}, Collection: ${collectionName}. Use getIngestionTaskStatus with taskId to check progress.`
-      }],
-      _meta: { taskId } 
-    };
-  }
-);
+//     // Synchronous return for the tool call
+//     return {
+//       content: [{
+//         type: "text",
+//         text: `Ingestion task ${taskId} started. Status: PENDING. Document: ${absoluteDocumentPath}, Collection: ${collectionName}. Use getIngestionTaskStatus with taskId to check progress.`
+//       }],
+//       _meta: { taskId } 
+//     };
+//   }
+// );
 
-server.tool(
-  "getFrdIngestionStatus",
-  "Check the status of a document ingestion task using the task ID returned from ingestFrdDocument.",
-  {
-    taskId: z.string().describe("The ID of the ingestion task."),
-  },
-  async ({ taskId }) => {
-    const task = ingestionTasks[taskId];
-    if (!task) {
-      return {
-        content: [{ type: "text", text: `No task found with ID: ${taskId}` }],
-        isError: true,
-      };
-    }
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(task, null, 2),
-        },
-      ],
-    };
-  }
-);
+// server.tool(
+//   "getFrdIngestionStatus",
+//   "Check the status of a document ingestion task using the task ID returned from ingestFrdDocument.",
+//   {
+//     taskId: z.string().describe("The ID of the ingestion task."),
+//   },
+//   async ({ taskId }) => {
+//     const task = ingestionTasks[taskId];
+//     if (!task) {
+//       return {
+//         content: [{ type: "text", text: `No task found with ID: ${taskId}` }],
+//         isError: true,
+//       };
+//     }
+//     return {
+//       content: [
+//         {
+//           type: "text",
+//           text: JSON.stringify(task, null, 2),
+//         },
+//       ],
+//     };
+//   }
+// );
 
 // Function to load Swagger documentation (either from URL or file)
 async function loadSwaggerDoc(swaggerSource: string): Promise<any> {
@@ -1377,103 +1375,103 @@ server.tool(
   }
 );
 
-server.tool(
-  "discoverApiStructure",
-  "Get an overview of the API structure including available tags, endpoints, and authentication schemes. Use this first when working with a new API to understand what's available before searching for specific endpoints.",
-  {},
-  async () => {
-    try {
-      const swaggerSource = process.env.SWAGGER_URL;
+// server.tool(
+//   "discoverApiStructure",
+//   "Get an overview of the API structure including available tags, endpoints, and authentication schemes. Use this first when working with a new API to understand what's available before searching for specific endpoints.",
+//   {},
+//   async () => {
+//     try {
+//       const swaggerSource = process.env.SWAGGER_URL;
       
-      if (!swaggerSource) {
-        throw new Error("SWAGGER_URL environment variable is not set");
-      }
+//       if (!swaggerSource) {
+//         throw new Error("SWAGGER_URL environment variable is not set");
+//       }
       
-      console.log(`Discovering API structure from ${swaggerSource}`);
+//       console.log(`Discovering API structure from ${swaggerSource}`);
       
-      // Load the Swagger documentation
-      const swaggerDoc = await loadSwaggerDoc(swaggerSource);
+//       // Load the Swagger documentation
+//       const swaggerDoc = await loadSwaggerDoc(swaggerSource);
       
-      // Extract API information
-      const structure = {
-        info: {
-          title: swaggerDoc.info?.title || 'Unknown API',
-          version: swaggerDoc.info?.version || 'Unknown',
-          description: swaggerDoc.info?.description || 'No description available'
-        },
-        servers: swaggerDoc.servers || [],
-        tags: getAvailableTags(swaggerDoc),
-        totalEndpoints: 0,
-        endpointsByMethod: {} as { [key: string]: number },
-        endpointsByTag: {} as { [key: string]: number },
-        authenticationSchemes: {},
-        hasParameters: 0,
-        hasAuthentication: 0
-      };
+//       // Extract API information
+//       const structure = {
+//         info: {
+//           title: swaggerDoc.info?.title || 'Unknown API',
+//           version: swaggerDoc.info?.version || 'Unknown',
+//           description: swaggerDoc.info?.description || 'No description available'
+//         },
+//         servers: swaggerDoc.servers || [],
+//         tags: getAvailableTags(swaggerDoc),
+//         totalEndpoints: 0,
+//         endpointsByMethod: {} as { [key: string]: number },
+//         endpointsByTag: {} as { [key: string]: number },
+//         authenticationSchemes: {},
+//         hasParameters: 0,
+//         hasAuthentication: 0
+//       };
       
-      // Extract authentication schemes
-      if (swaggerDoc.components?.securitySchemes) {
-        structure.authenticationSchemes = swaggerDoc.components.securitySchemes;
-      } else if (swaggerDoc.securityDefinitions) {
-        structure.authenticationSchemes = swaggerDoc.securityDefinitions;
-      }
+//       // Extract authentication schemes
+//       if (swaggerDoc.components?.securitySchemes) {
+//         structure.authenticationSchemes = swaggerDoc.components.securitySchemes;
+//       } else if (swaggerDoc.securityDefinitions) {
+//         structure.authenticationSchemes = swaggerDoc.securityDefinitions;
+//       }
       
-      // Count endpoints and analyze structure
-      if (swaggerDoc.paths) {
-        for (const [path, pathItem] of Object.entries(swaggerDoc.paths)) {
-          for (const [method, operation] of Object.entries(pathItem as object)) {
-            if (method === 'parameters') continue;
+//       // Count endpoints and analyze structure
+//       if (swaggerDoc.paths) {
+//         for (const [path, pathItem] of Object.entries(swaggerDoc.paths)) {
+//           for (const [method, operation] of Object.entries(pathItem as object)) {
+//             if (method === 'parameters') continue;
             
-            const op = operation as any;
-            structure.totalEndpoints++;
+//             const op = operation as any;
+//             structure.totalEndpoints++;
             
-            // Count by HTTP method
-            const httpMethod = method.toUpperCase();
-            structure.endpointsByMethod[httpMethod] = (structure.endpointsByMethod[httpMethod] || 0) + 1;
+//             // Count by HTTP method
+//             const httpMethod = method.toUpperCase();
+//             structure.endpointsByMethod[httpMethod] = (structure.endpointsByMethod[httpMethod] || 0) + 1;
             
-            // Count by tags
-            if (op.tags && Array.isArray(op.tags)) {
-              op.tags.forEach((tag: string) => {
-                structure.endpointsByTag[tag] = (structure.endpointsByTag[tag] || 0) + 1;
-              });
-            }
+//             // Count by tags
+//             if (op.tags && Array.isArray(op.tags)) {
+//               op.tags.forEach((tag: string) => {
+//                 structure.endpointsByTag[tag] = (structure.endpointsByTag[tag] || 0) + 1;
+//               });
+//             }
             
-            // Count endpoints with parameters
-            if ((op.parameters && op.parameters.length > 0) || op.requestBody || path.includes('{')) {
-              structure.hasParameters++;
-            }
+//             // Count endpoints with parameters
+//             if ((op.parameters && op.parameters.length > 0) || op.requestBody || path.includes('{')) {
+//               structure.hasParameters++;
+//             }
             
-            // Count endpoints with authentication
-            if (op.security && op.security.length > 0) {
-              structure.hasAuthentication++;
-            }
-          }
-        }
-      }
+//             // Count endpoints with authentication
+//             if (op.security && op.security.length > 0) {
+//               structure.hasAuthentication++;
+//             }
+//           }
+//         }
+//       }
       
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(structure, null, 2),
-          },
-        ],
-      };
-    } catch (error: any) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`Error in discoverApiStructure tool: ${errorMessage}`);
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Failed to discover API structure: ${errorMessage}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  }
-);
+//       return {
+//         content: [
+//           {
+//             type: "text",
+//             text: JSON.stringify(structure, null, 2),
+//           },
+//         ],
+//       };
+//     } catch (error: any) {
+//       const errorMessage = error instanceof Error ? error.message : String(error);
+//       console.error(`Error in discoverApiStructure tool: ${errorMessage}`);
+//       return {
+//         content: [
+//           {
+//             type: "text",
+//             text: `Failed to discover API structure: ${errorMessage}`,
+//           },
+//         ],
+//         isError: true,
+//       };
+//     }
+//   }
+// );
 
 
 // Start receiving messages on stdio

@@ -1,13 +1,3 @@
-# Browser MCP Extension - Setup Guide
-
-**🚀 Version 1.2.0 - Enhanced for Autonomous AI Development**
-
-> Browser MCP Extension enables AI tools to interact with your browser for enhanced development capabilities. **Now optimized for autonomous AI-powered frontend development workflows** with enhanced connection stability, fast recovery, and intelligent monitoring.
-
-## 🎯 Perfect for Autonomous AI Workflows
-
-The extension works exceptionally well with AI IDEs when project context is properly configured:
-
 ### For Windsurf IDE (Recommended)
 Configure these in **Windsurf Memories**:
 1. **Authentication context setup** - How auth works in your project
@@ -22,7 +12,7 @@ Set up similar context in your **Rules file** (.cursorrules):
 - API integration patterns  
 - Component architecture
 
-**💡 Pro Tip:** Spend time setting up comprehensive project context in your AI IDE. This extension + proper context = autonomous frontend development magic!
+**💡Important:** Spend time setting up comprehensive project context in your AI IDE. This extension + proper context = autonomous frontend development magic!
 
 ## 🚀 Quick Setup Instructions
 
@@ -35,35 +25,38 @@ git clone https://github.com/Winds-AI/Browser-MCP.git
 cd Browser-MCP
 ```
 
-### 2. Install Chrome Extension
+### 2. For Chrome Extension
 
-1. Open Chrome and navigate to `chrome://extensions/`
-2. Toggle **"Developer mode"** on (top-right corner)
-3. Click **"Load unpacked"** (top-left corner)  
-4. **Important**: Install dependencies first:
-   ```bash
-   cd chrome-extension
-   npm install
-   cd ..
-   ```
+1. **Important**: Install dependencies first:
+  ```bash
+  cd chrome-extension
+  npm install
+  ```
+2. Open Chrome and navigate to `chrome://extensions/`
+3. Toggle **"Developer mode"** on (top-right corner)
+4. Click **"Load unpacked"** (top-left corner)  
 5. Select the `chrome-extension` directory from the cloned repository
 
-### 3. Set Up MCP Server (Enhanced Build Process)
+### 3. For MCP Client
 
-**Build the MCP Server:**
+1. Run the following commands:
 ```bash
 cd browser-tools-mcp
 npm install
-npm run build  # Using npm run build instead of npx tsc for consistency
+npm run build
 ```
 
-**Build and Start the Browser Tools Server:**
+### 4. For MCP Server ( communication layer between chrome extension and MCP client + data processor)
+
+1. Run the following commands:
 ```bash
 cd ../browser-tools-server
 npm install  
 npm run build
-node ./dist/browser-connector.js
+npm start
 ```
+
+After this repository setup, go to any chrome tab and open developer tools (F12) and navigate to the BrowserTools tab ( it will be where all the tabs like network, console etc are). You should see a connection status message. Just to make sure click on the test connection button and make sure that the port number is same as what server is running
 
 **🎯 Enhanced Server Features:**
 - ✅ **Auto-port detection** (starts on 3025, auto-selects 3026+ if needed)
@@ -85,26 +78,25 @@ node ./dist/browser-connector.js
       "browser-tools-frontend-dev": {
        "command": "node", 
         "args": [
-          "/absolute/path/to/browser-tools-mcp/dist/mcp-server.js"
+          "/absolute/path/to/browser-tools-mcp/dist/mcp-server.js"  // copy the path from where mcp-server.js is located in the repo
         ],
         "env": {
-          // === API Testing & Authentication ===
-          "AUTH_ORIGIN": "http://localhost:5173",        // Your app's origin URL
-          "AUTH_STORAGE_TYPE": "localStorage",           // cookie/localStorage/sessionStorage  
+          // === For using searchApiDocs and discoverApiStructure tools ===
+          "SWAGGER_URL": "https://api.example.com/docs/swagger.json", // OpenAPI/Swagger JSON URL
+
+          // === For using analyzeImageFile tool ===
+          "PROJECT_ROOT": "/root/path/to/your/project",       // Project root for file operations
+          
+          // === For using executeAuthenticatedApiCall tool ===
+          "AUTH_ORIGIN": "http://localhost:5173",        // Your app's localhost URL
+          "AUTH_STORAGE_TYPE": "localStorage",           // to get access token from cookie/localStorage/sessionStorage 
           "AUTH_TOKEN_KEY": "authToken",                 // Token key name in storage
-          "API_BASE_URL": "https://api.example.com",     // Your API base URL
+          "API_BASE_URL": "https://api.example.com",     // base URL for calling API
 
-          // === Document & API Discovery ===
-          "SWAGGER_URL": "https://api.example.com/docs", // OpenAPI/Swagger JSON URL
-          "PROJECT_ROOT": "/path/to/your/project",       // Project root for file operations
+          // === For using takeScreenshot tool ===
+          "SCREENSHOT_STORAGE_PATH": "/path/to/screenshots", // Custom screenshot directory where screenshots will be saved in an organized directories
 
-          // === Screenshot Management ===
-          "SCREENSHOT_STORAGE_PATH": "/path/to/screenshots", // Custom screenshot directory
 
-          // === Vector Database (Optional - for FRD documents) ===
-          "GOOGLE_API_KEY": "your_google_api_key",       // For embedding generation
-          "QDRANT_API_KEY": "your_qdrant_api_key",       // Qdrant Cloud API key
-          "QDRANT_URL": "https://your-cluster.qdrant.io:6333", // Qdrant server URL
 
           // === Connection Stability (Optional Overrides) ===
           "BROWSER_TOOLS_HOST": "127.0.0.1",            // Server host override
@@ -112,26 +104,6 @@ node ./dist/browser-connector.js
         }
       }
     }
-}
-```
-
-#### 🔧 Configuration for Cursor IDE:
-
-```json
-{
-  "mcpServers": {
-    "browser-tools-frontend-dev": {
-      "command": "node",
-      "args": ["/absolute/path/to/browser-tools-mcp/dist/mcp-server.js"],
-      "env": {
-        "AUTH_ORIGIN": "http://localhost:5173",
-        "AUTH_STORAGE_TYPE": "localStorage", 
-        "AUTH_TOKEN_KEY": "authToken",
-        "API_BASE_URL": "https://api.example.com",
-        "PROJECT_ROOT": "/path/to/your/project"
-      }
-    }
-  }
 }
 ```
 
@@ -187,25 +159,6 @@ curl http://localhost:3026/.identity
 
 # Check connection health
 curl http://localhost:3026/connection-health
-```
-
-### 2. Test Chrome Extension
-1. Open any webpage (not DevTools pages)
-2. Open Chrome DevTools (F12)
-3. Look for "BrowserTools" tab
-4. Verify connection status shows "Connected"
-
-### 3. Test MCP Tools
-Use your AI editor to test tools like:
-```json
-// Example takeScreenshot call
-{
-  "tool": "takeScreenshot",
-  "params": {
-    "filename": "test-setup",
-    "returnImageData": true
-  }
-}
 ```
 
 ## 🎯 Ready for Autonomous Development!
