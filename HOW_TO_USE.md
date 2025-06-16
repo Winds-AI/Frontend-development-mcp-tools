@@ -44,3 +44,4 @@ Based on real API responses from Step 2, the agent can:
 
 ### **Workflow 3: Recursicve UI Improvements**
 - Use `takeScreenshot` instruct it to use this tool in loop to take screenshot, understand the UI structure and then progressivly improve the UI
+- we can also use `analyzeImageFile` tool for accessing older saved screenshots if necessary.

@@ -150,16 +150,18 @@ After this repository setup, go to any chrome tab and open developer tools (F12)
 - **Memory Management**: Enhanced callback cleanup prevents memory leaks
 - **Network Tolerance**: Increased timeouts for unreliable network conditions
 
-## 📊 Testing Your Setup
-
-### 1. Verify Server Connection
+### Connection Issues
 ```bash
-# Check server identity (replace 3026 with your actual port)
+# Check server status
 curl http://localhost:3026/.identity
 
-# Check connection health
+# Monitor connection health
 curl http://localhost:3026/connection-health
+
+# View server logs
+tail -f browser-tools-server/server.log
 ```
+
 
 ## 🎯 Ready for Autonomous Development!
 
