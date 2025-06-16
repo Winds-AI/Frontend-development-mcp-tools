@@ -1,12 +1,17 @@
 {
-  "name": "browser-tools-mcp-extension",
+  "name": "frontend-development-mcp-extension",
   "version": "1.2.0",
-  "description": "Chrome extension for Browser Tools MCP integration",
+  "description": "Chrome extension for Frontend Development MCP integration",
   "main": "background.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["chrome-extension", "mcp", "browser-tools"],
-  "author": "AgentDesk AI",
-  "license": "MIT"
+  "keywords": ["chrome-extension", "mcp", "frontend-development"],
+  "author": "Winds AI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Winds-AI/frontend-development-mcp-extension.git"
+  },
+  "inspiredBy": "https://github.com/AgentDeskAI/browser-tools-mcp"
 }

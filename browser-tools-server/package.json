@@ -1,11 +1,11 @@
 {
-  "name": "@agentdeskai/browser-tools-server",
+  "name": "@winds-ai/frontend-development-mcp-server",
   "version": "1.2.0",
   "description": "A browser tools server for capturing and managing browser events, logs, and screenshots",
   "type": "module",
   "main": "dist/browser-connector.js",
   "bin": {
-    "browser-tools-server": "./dist/browser-connector.js"
+    "frontend-development-mcp-server": "./dist/browser-connector.js"
   },
   "scripts": {
     "build": "tsc",
@@ -21,8 +21,13 @@
     "chrome",
     "extension"
   ],
-  "author": "AgentDesk AI",
+  "author": "Winds AI",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Winds-AI/frontend-development-mcp-server.git"
+  },
+  "inspiredBy": "https://github.com/AgentDeskAI/browser-tools-mcp",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.4.1",
     "body-parser": "^1.20.3",
