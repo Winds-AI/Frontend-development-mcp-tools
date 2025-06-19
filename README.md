@@ -9,6 +9,10 @@ Browser Tools MCP Extension enables AI tools to interact with your browser for e
 - For a peek on future updates, please refer to `FUTURE_PLANS.md`.
 - For getting an overview of the project, please refer to `PROJECT_OVERVIEW.md`.
 
+
+### Give this repo a star ⭐ if you find it useful. It will help me to keep working on this project.
+### For any suggestions, discussion or any other queries reach out and give me a follow on [LinkedIn](https://www.linkedin.com/in/meet-limbani/).
+
 ## Motivation
 
 At this point in time, I think the models are capable of doing a lot of things, but they are not able to do it in a way that is helpful to the user because of a lack of context.
@@ -48,6 +52,9 @@ The following tools are available through the Browser Tools MCP server:
      * `orderDirection` (string, optional, default: `"desc"`): The direction for ordering. Possible values: `"asc"` (oldest first), `"desc"` (newest first).
      * `limit` (number, optional, default: `20`): The maximum number of results to return.
    * **Functionality**: This tool constructs a query based on the provided parameters and fetches network request details from the `browser-connector` server (typically at `http://<host>:<port>/network-request-details`). It then returns the filtered and ordered list of network interactions.
+
+
+
 2. **`takeScreenshot`** ⭐ **ENHANCED**
 
    * **Description**: Take a screenshot of the current browser tab and return the image data for immediate analysis. The screenshot is automatically organized by project and URL structure in a centralized directory system.
@@ -56,11 +63,17 @@ The following tools are available through the Browser Tools MCP server:
      * `returnImageData` (boolean, optional, default: true): Whether to return the base64 image data in the response for immediate analysis.
      * `projectName` (string, optional): Optional project name to override automatic project detection. Screenshots will be organized under this project folder.
    * **Functionality**: Captures a screenshot via the Chrome extension with enhanced connection stability. Features 15-second timeout for autonomous operation reliability and organized storage system. Returns both file confirmation and base64 image data (if requested) for immediate analysis workflows.
+
+
+
 3. **`getSelectedElement`**
 
    * **Description**: Retrieves information about the HTML element currently selected by the user in the browser's DevTools (if any).
    * **Parameters**: None.
    * **Functionality**: This tool queries the `browser-connector` server (at `http://<host>:<port>/selected-element`) to get details of the element last inspected or selected by the user in the Chrome DevTools. It returns a JSON string containing information about the selected element.
+
+
+
 4. **`analyzeImageFile`**
 
    * **Description**: Load and analyze previously saved images or existing image files. Use this to access historical screenshots taken with takeScreenshot or any other image files in your project.
@@ -68,6 +81,9 @@ The following tools are available through the Browser Tools MCP server:
      * `imagePath` (string, required): The path to the image file. This can be an absolute path or a path relative to the project root.
      * `projectRoot` (string, optional): An optional path to override the default project root directory. If not provided, it uses the `PROJECT_ROOT` environment variable or the directory of the MCP server.
    * **Functionality**: The tool resolves the absolute path to the image, reads the file, converts its content to a base64 string, and determines its MIME type. It returns an object containing the `fileName`, `mimeType`, `size` (in bytes), and the `base64Data` of the image.
+
+
+
 5. **`searchApiDocs`**
 
    * **Description**: Searches through an OpenAPI (Swagger) specification to find API endpoints that match a given pattern. This helps in understanding API structures, parameters, and responses.
@@ -81,6 +97,9 @@ The following tools are available through the Browser Tools MCP server:
      * Matches the `apiPattern` against the endpoint path and its `operationId`.
      * For matching endpoints, it extracts details like the HTTP method, summary, description, parameters, request body, and responses.
      * If `includeSchemas` is true, it resolves and embeds any referenced JSON schemas directly into the output for the matching endpoints.
+
+
+     
 6. **`executeAuthenticatedApiCall`** *(NEW - Unified API Testing Tool)*
 
    * **Description**: Automatically retrieves authentication tokens from browser session and executes authenticated API calls. This eliminates token retrieval hallucination and ensures consistent API testing with real authentication.
