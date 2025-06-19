@@ -1,6 +1,6 @@
 {
   "name": "@winds-ai/frontend-development-mcp",
-  "version": "1.2.0",
+  "version": "1.2.2",
   "description": "MCP (Model Context Protocol) server for browser tools integration",
   "main": "dist/mcp-server.js",
   "type": "module",
@@ -27,7 +27,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Winds-AI/frontend-development-mcp.git"
+    "url": "https://github.com/Winds-AI/Frontend-development-mcp-tools"
   },
   "inspiredBy": "https://github.com/AgentDeskAI/browser-tools-mcp",
   "dependencies": {

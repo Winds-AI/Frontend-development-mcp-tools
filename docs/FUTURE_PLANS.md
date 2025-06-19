@@ -1,4 +1,4 @@
-#### If you are interested in the future of this project, please go to [https://windsurf.canny.io/feature-requests](https://windsurf.canny.io/feature-requests), search for these requests and upvote them so we can build upon this tool more.
+#### If you are interested in the future of this project, please go to [https://windsurf.canny.io/feature-requests](https://windsurf.canny.io/feature-requests), search for these requests and upvote them so we can build upon these tools more.
 
 Feature Requests:
 
@@ -7,6 +7,10 @@ Feature Requests:
 - Add custom model selection for tool call
 - Prompt field is resetted
 - Add a wait time tool call that has a check button to continue when I see fit
+- Increase text limit for memories
+- Memory segregation and sharing
+- Allow local mcp configuration based on project repo or workspace
+
 
 # Future Plans for Frontend Development Tools MCP Extension
 
