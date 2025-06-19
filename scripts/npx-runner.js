@@ -139,7 +139,9 @@ async function runSetup() {
   }
   
   try {
-    await runCommand('npm', ['install'], mcpDir);
+    // If running via npx, ensure we install production dependencies
+    const installArgs = isRunningViaNpx() ? ['install', '--no-save', '--production'] : ['install'];
+    await runCommand('npm', installArgs, mcpDir);
     logSuccess('browser-tools-mcp dependencies installed');
   } catch (error) {
     logError(`Failed to install browser-tools-mcp dependencies: ${error.message}`);
@@ -155,7 +157,9 @@ async function runSetup() {
   }
   
   try {
-    await runCommand('npm', ['install'], serverDir);
+    // If running via npx, ensure we install production dependencies
+    const installArgs = isRunningViaNpx() ? ['install', '--no-save', '--production'] : ['install'];
+    await runCommand('npm', installArgs, serverDir);
     logSuccess('browser-tools-server dependencies installed');
   } catch (error) {
     logError(`Failed to install browser-tools-server dependencies: ${error.message}`);
