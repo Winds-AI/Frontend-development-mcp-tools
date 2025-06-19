@@ -294,9 +294,11 @@ if (args.includes('--help') || args.includes('-h')) {
   process.exit(0);
 }
 
-// Run main if this script is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
-}
+// Always run main when this file is loaded, whether through direct execution or as a module
+// This ensures it works with npx which might not satisfy the import.meta.url condition
+main().catch(error => {
+  console.error('Error in main execution:', error);
+  process.exit(1);
+});
 
 export default main;
