@@ -32,19 +32,20 @@
   },
   "inspiredBy": "https://github.com/AgentDeskAI/browser-tools-mcp",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.4.1",
+    "@modelcontextprotocol/sdk": "^1.13.0",
     "@qdrant/qdrant-js": "^1.14.1",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "node-fetch": "^2.7.0",
-    "ws": "^8.18.1"
+    "ws": "^8.18.1",
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.5",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
-    "@types/node": "^22.13.1",
+    "@types/node": "^22.15.32",
     "@types/node-fetch": "^2.6.11",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.5.14",
