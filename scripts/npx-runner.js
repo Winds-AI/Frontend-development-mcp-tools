@@ -242,17 +242,53 @@ function displayStartupMessage() {
     log(`${colors.bright}${colors.green}Running via npx - No installation required!${colors.reset}\n`);
   }
   
+  // Get the MCP server path
+  const mcpServerPath = join(rootDir, 'browser-tools-mcp', 'dist', 'mcp-server.js');
+  
   log(`${colors.bright}Server Information:${colors.reset}`);
   log(`${colors.cyan}• Browser Tools Server:${colors.reset} Starting on port 3025+ (auto-detected)`);
-  log(`${colors.cyan}• MCP Server Path:${colors.reset} ${join(rootDir, 'browser-tools-mcp', 'dist', 'mcp-server.js')}`);
+  log(`${colors.cyan}• MCP Server Path:${colors.reset} ${mcpServerPath}`);
   
   log(`\n${colors.bright}Chrome Extension:${colors.reset}`);
   log(`${colors.cyan}• Extension Directory:${colors.reset} ${join(rootDir, 'chrome-extension')}`);
   log(`${colors.cyan}• Load in Chrome:${colors.reset} chrome://extensions/ → Load unpacked`);
   
-  log(`\n${colors.bright}AI IDE Configuration:${colors.reset}`);
-  log(`${colors.cyan}• Add MCP server to your AI IDE configuration`);
-  log(`${colors.cyan}• See SETUP_GUIDE.md for detailed configuration examples`);
+  // Generate MCP configuration JSON in the format expected by AI IDEs
+  const mcpConfig = {
+    "mcpServers": {
+      "Frontend-development-tools": {
+        "command": "node",
+        "args": [
+          mcpServerPath  // Path to the MCP server script
+        ],
+        "env": {
+          // === For using searchApiDocs and discoverApiStructure tools ===
+          "SWAGGER_URL": "https://api.example.com/docs/swagger.json", // OpenAPI/Swagger JSON URL
+
+          // === For using analyzeImageFile tool ===
+          "PROJECT_ROOT": process.cwd(),       // Project root for file operations
+          
+          // === For using executeAuthenticatedApiCall tool ===
+          "AUTH_ORIGIN": "http://localhost:5173",        // Your app's localhost URL
+          "AUTH_STORAGE_TYPE": "localStorage",           // to get access token from cookie/localStorage/sessionStorage 
+          "AUTH_TOKEN_KEY": "authToken",                 // Token key name in storage
+          "API_BASE_URL": "https://api.example.com",     // base URL for calling API
+
+          // === For using takeScreenshot tool ===
+          "SCREENSHOT_STORAGE_PATH": join(process.env.HOME || process.env.USERPROFILE, 'windsurf_screenshots'), // Custom screenshot directory
+
+          // === Connection Stability (Optional Overrides) ===
+          "BROWSER_TOOLS_HOST": "127.0.0.1",            // Server host override
+          "BROWSER_TOOLS_PORT": "3025"                   // Server port override
+        }
+      }
+    }
+  };
+  
+  log(`\n${colors.bright}${colors.green}AI IDE Configuration:${colors.reset}`);
+  log(`${colors.cyan}• Copy and paste this configuration into your AI IDE:${colors.reset}`);
+  log(`${colors.yellow}${JSON.stringify(mcpConfig, null, 2)}${colors.reset}`);
+  log(`\n${colors.cyan}• See SETUP_GUIDE.md for detailed configuration examples${colors.reset}`);
   
   log(`\n${colors.yellow}Press Ctrl+C to stop the server${colors.reset}\n`);
 }
