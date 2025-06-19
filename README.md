@@ -6,55 +6,37 @@ Frontend Development MCP Tools enables AI tools to interact with your browser fo
 
 ## 🚀 Quick Installation
 
-### One-Command Setup with npx (Recommended)
+### Simple Setup After Clone (Recommended)
 
-Run everything with a single command - no installation required:
+Clone the repository and use the all-in-one setup script:
 
 ```bash
-npx @winds-ai/frontend-development-mcp-tools
+git clone https://github.com/Winds-AI/Frontend-development-mcp-tools.git
+cd Frontend-development-mcp-tools
+node scripts/setup-and-run.js
 ```
 
 That's it! This single command will automatically:
-- Download the package (if not cached)
-- Install all dependencies for both MCP client and server
-- Build both projects
+- Install all dependencies (root and subpackages)
+- Build all projects
 - Set up the necessary directories
 - Start the browser tools server
-
-### Alternative: Global Installation
-
-If you prefer to install globally:
-
-```bash
-npm install -g @winds-ai/frontend-development-mcp-tools
-frontend-dev-mcp
-```
+- Display MCP configuration for your AI IDE
 
 ### Chrome Extension Setup
 
 1. Open Chrome and navigate to `chrome://extensions/`
 2. Toggle **"Developer mode"** on (top-right corner)
 3. Click **"Load unpacked"** (top-left corner)
-4. Select the `chrome-extension` directory from your global npm installation
+4. Select the `chrome-extension` directory from your cloned repository
 
-### For Development
+### Key Benefits of the Setup Script
 
-If you want to clone and develop locally:
-
-```bash
-git clone https://github.com/Winds-AI/Frontend-development-mcp-tools.git
-cd Frontend-development-mcp-tools
-npm run setup
-npm start
-```
-
-### Key Benefits of npx
-
-- ✅ **No global installation** - Always uses the latest version
+- ✅ **Simple and straightforward** - One command does everything
 - ✅ **Zero configuration** - Everything happens automatically
 - ✅ **Cross-platform** - Works on Windows, macOS, and Linux
-- ✅ **Smart caching** - Faster subsequent runs
-- ✅ **Clean system** - No global packages cluttering your system
+- ✅ **Full control** - You have the complete codebase locally
+- ✅ **Easy to customize** - Modify as needed for your workflow
 
 ## 📚 Documentation
 
