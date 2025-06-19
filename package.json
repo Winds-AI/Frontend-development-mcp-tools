@@ -8,7 +8,6 @@
     "frontend-development-mcp-tools": "./scripts/npx-runner.js"
   },
   "scripts": {
-    "postinstall": "node scripts/setup.js",
     "setup": "node scripts/setup.js",
     "start": "node scripts/npx-runner.js",
     "start:server": "cd browser-tools-server && npm start",
