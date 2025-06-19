@@ -2,15 +2,15 @@
   "name": "@winds-ai/frontend-development-mcp-tools",
   "version": "1.3.6",
   "description": "Complete Browser MCP Tools package for frontend development with AI IDEs",
-  "main": "scripts/npx-runner.js",
+  "main": "scripts/setup-and-run.js",
   "type": "module",
 
   "bin": {
-    "frontend-development-mcp-tools": "./scripts/npx-runner.js"
+    "frontend-development-mcp-tools": "./scripts/setup-and-run.js"
   },
   "scripts": {
     "setup": "node scripts/setup.js",
-    "start": "node scripts/npx-runner.js",
+    "start": "node scripts/setup-and-run.js",
     "prepublishOnly": "npm run build",
     "start:server": "cd browser-tools-server && npm start",
     "start:mcp": "cd browser-tools-mcp && npm start",
