@@ -4,28 +4,10 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from 'url';
 import { z } from "zod";
-import { QdrantClient } from "@qdrant/qdrant-js"; // Corrected Qdrant client import
-import { QdrantVectorStore as LlamaIndexQdrantStore } from "@llamaindex/qdrant";
-import { LlamaParseReader } from "llamaindex";
-// import { PapaCSVReader, MarkdownReader } from "llamaindex/readers/file"; // Temporarily commented out - USER: Please verify correct import for your LlamaIndex version
-import { Document, VectorStoreIndex, Settings, SimpleDocumentStore, SimpleIndexStore, ObjectType, ImageNode } from "llamaindex";
-import { Gemini, GeminiEmbedding, GEMINI_EMBEDDING_MODEL } from "@llamaindex/google"; // Gemini Embedding, LLM & Model Enum
-import { v4 as uuidv4 } from 'uuid';
-
 
 // Helper constants for ES module scope
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// --- Global LlamaIndex Settings Configuration ---
-const GOOGLE_API_KEY_GLOBAL = process.env.GOOGLE_API_KEY;
-if (GOOGLE_API_KEY_GLOBAL) {
-  Settings.llm = new Gemini({ apiKey: GOOGLE_API_KEY_GLOBAL });
-  Settings.embedModel = new GeminiEmbedding({ model: GEMINI_EMBEDDING_MODEL.TEXT_EMBEDDING_004 });
-  console.log("Global LlamaIndex Gemini LLM and Embedding Model configured.");
-} else {
-  console.warn("GOOGLE_API_KEY not found in environment variables. Global LlamaIndex models will not be configured. Some functionalities may fail.");
-}
 
 // Create the MCP server
 const server = new McpServer({
@@ -37,10 +19,6 @@ const server = new McpServer({
 let discoveredHost = "127.0.0.1";
 let discoveredPort = 3025;
 let serverDiscovered = false;
-let lastDiscoveryAttempt = 0;
-let discoveryRetryCount = 0;
-const MAX_DISCOVERY_RETRIES = 5;
-const DISCOVERY_RETRY_DELAY = 2000; // 2 seconds between retries
 
 // Function to get the default port from environment variable or default
 function getDefaultServerPort(): number {
@@ -216,22 +194,22 @@ function generateSearchSuggestions(searchTerm: string): string[] {
   // Partial matches
   suggestions.push(`   • Try partial match: "${term.slice(0, Math.max(3, term.length - 2))}"`);
   
-  // Common patterns
-  const patterns = [
-    { pattern: 'activity', alternates: ['activities', 'action', 'event', 'task'] },
-    { pattern: 'user', alternates: ['users', 'account', 'profile', 'auth'] },
-    { pattern: 'order', alternates: ['orders', 'purchase', 'transaction'] },
-    { pattern: 'product', alternates: ['products', 'item', 'catalog'] },
-    { pattern: 'admin', alternates: ['administration', 'manage', 'dashboard'] }
-  ];
+  // // Common patterns
+  // const patterns = [
+  //   { pattern: 'activity', alternates: ['activities', 'action', 'event', 'task'] },
+  //   { pattern: 'user', alternates: ['users', 'account', 'profile', 'auth'] },
+  //   { pattern: 'order', alternates: ['orders', 'purchase', 'transaction'] },
+  //   { pattern: 'product', alternates: ['products', 'item', 'catalog'] },
+  //   { pattern: 'admin', alternates: ['administration', 'manage', 'dashboard'] }
+  // ];
   
-  const matchingPattern = patterns.find(p => 
-    term.includes(p.pattern) || p.alternates.some(alt => term.includes(alt))
-  );
+  // const matchingPattern = patterns.find(p => 
+  //   term.includes(p.pattern) || p.alternates.some(alt => term.includes(alt))
+  // );
   
-  if (matchingPattern) {
-    suggestions.push(`   • Related terms: ${matchingPattern.alternates.map(alt => `"${alt}"`).join(', ')}`);
-  }
+  // if (matchingPattern) {
+  //   suggestions.push(`   • Related terms: ${matchingPattern.alternates.map(alt => `"${alt}"`).join(', ')}`);
+  // }
   
   // Generic suggestions
   suggestions.push("");
@@ -240,6 +218,7 @@ function generateSearchSuggestions(searchTerm: string): string[] {
   suggestions.push(`   • "get-" - Find getter endpoints`);
   suggestions.push(`   • "list" - Find list/collection endpoints`);
   suggestions.push(`   • "auth" - Find authentication calls`);
+  suggestions.push(`   • you can use tags for filtering api's`);
   
   return suggestions;
 }
@@ -248,7 +227,7 @@ server.tool(
   "analyzeApiCalls",
   "Analyze network requests made by the browser to debug API interactions. Use this to inspect request/response details, check authentication headers, or debug network errors. **Search Strategy**: Try both singular and plural forms (e.g., 'activity' AND 'activities'), partial matches work better than exact matches.",
   { // <--- START with a plain object brace {
-    urlFilter: z.string().describe("Substring or pattern to filter request URLs. **Tips**: Use partial matches (e.g., 'activity' finds both 'get-activity-list' and 'activity-categories'). Try both singular/plural forms if first search returns empty results."),    details: z
+    urlFilter: z.string().describe("Substring or regex pattern to filter request URLs. **Tips**: Use partial matches (e.g., 'activity' finds both 'get-activity-list' and 'activity-categories'). Try both singular/plural forms if first search returns empty results."),    details: z
       .array(
         z.enum([
           "url",

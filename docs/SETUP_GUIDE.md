@@ -27,17 +27,12 @@ cd Browser-MCP
 
 ### 2. For Chrome Extension
 
-1. **Important**: Install dependencies first:
-  ```bash
-  cd chrome-extension
-  npm install
-  ```
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Toggle **"Developer mode"** on (top-right corner)
-4. Click **"Load unpacked"** (top-left corner)  
-5. Select the `chrome-extension` directory from the cloned repository
+1. Open Chrome and navigate to `chrome://extensions/`
+2. Toggle **"Developer mode"** on (top-right corner)
+3. Click **"Load unpacked"** (top-left corner)  
+4. Select the `chrome-extension` directory from the cloned repository
 
-### 3. For MCP Client
+### 3. Install Dependencies for MCP client and MCP server
 
 1. Run the following commands:
 ```bash
@@ -46,13 +41,21 @@ npm install
 npm run build
 ```
 
-### 4. For MCP Server ( communication layer between chrome extension and MCP client + data processor)
+AND
+
+```bash
+cd ../browser-tools-server
+npm install
+npm run build
+```
+
+After instaliing all dependencies, make sure that you reload your IDE window to ensure all import paths bind to the files properly
+
+### 4. Run MCP server
 
 1. Run the following commands:
 ```bash
 cd ../browser-tools-server
-npm install  
-npm run build
 npm start
 ```
 
@@ -65,7 +68,7 @@ After this repository setup, go to any chrome tab and open developer tools (F12)
 - ✅ **Fast recovery** (3-15 second reconnection)
 - ✅ **Server identity validation** at `/.identity`
 
-### 4. Configure Your AI Code Platform
+### 5. Configure Your AI Code Platform
 
 1. Add this server to your MCP configuration file in your preferred AI code platform (Windsurf, Cursor, GitHub Copilot, etc.).
 2. **Important**: After updating the MCP configuration, close and restart your AI coding platform for the changes to take effect.
