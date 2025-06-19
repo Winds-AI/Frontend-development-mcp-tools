@@ -9,7 +9,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "start": "tsc && node dist/browser-connector.js",
+    "start": "node dist/browser-connector.js",
+    "dev": "tsc && node dist/browser-connector.js",
     "prepublishOnly": "npm run build"
   },
   "keywords": [

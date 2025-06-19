@@ -1,0 +1,83 @@
+{
+  "name": "@winds-ai/frontend-development-mcp-tools",
+  "version": "1.2.4",
+  "description": "Complete Browser MCP Tools package for frontend development with AI IDEs",
+  "main": "scripts/npx-runner.js",
+  "type": "module",
+  "bin": {
+    "frontend-development-mcp-tools": "./scripts/npx-runner.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/setup.js",
+    "setup": "node scripts/setup.js",
+    "start": "node scripts/npx-runner.js",
+    "start:server": "cd browser-tools-server && npm start",
+    "start:mcp": "cd browser-tools-mcp && npm start",
+    "build": "npm run build:mcp && npm run build:server",
+    "build:mcp": "cd browser-tools-mcp && npm run build",
+    "build:server": "cd browser-tools-server && npm run build",
+    "install:all": "npm run install:mcp && npm run install:server",
+    "install:mcp": "cd browser-tools-mcp && npm install",
+    "install:server": "cd browser-tools-server && npm install",
+    "clean": "rm -rf browser-tools-mcp/node_modules browser-tools-server/node_modules browser-tools-mcp/dist browser-tools-server/dist",
+    "dev": "concurrently \"npm run start:server\" \"npm run start:mcp\"",
+    "test": "echo \"Tests will be added in future versions\" && exit 0"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "browser",
+    "tools",
+    "debugging",
+    "ai",
+    "chrome",
+    "extension",
+    "frontend",
+    "development",
+    "windsurf",
+    "cursor",
+    "claude"
+  ],
+  "author": "Winds AI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Winds-AI/Frontend-development-mcp-tools"
+  },
+  "homepage": "https://github.com/Winds-AI/Frontend-development-mcp-tools#readme",
+  "bugs": {
+    "url": "https://github.com/Winds-AI/Frontend-development-mcp-tools/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2",
+    "chalk": "^5.3.0",
+    "ora": "^8.0.1",
+    "typescript": "^5.7.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1"
+  },
+  "files": [
+    "scripts/",
+    "browser-tools-mcp/*.ts",
+    "browser-tools-mcp/package.json",
+    "browser-tools-mcp/tsconfig.json",
+    "browser-tools-mcp/README.md",
+    "browser-tools-server/*.ts",
+    "browser-tools-server/lighthouse/",
+    "browser-tools-server/package.json",
+    "browser-tools-server/tsconfig.json",
+    "chrome-extension/",
+    "docs/",
+    "README.md",
+    "SETUP_GUIDE.md"
+  ],
+  "preferGlobal": true,
+  "publishConfig": {
+    "access": "public"
+  }
+}

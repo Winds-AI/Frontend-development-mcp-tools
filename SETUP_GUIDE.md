@@ -16,48 +16,49 @@ Set up similar context in your **Rules file** (.cursorrules):
 
 ## 🚀 Quick Setup Instructions
 
-Follow these steps to set up the Browser MCP Extension with enhanced autonomous operation features:
+### Option 1: One-Command Setup with npx (Recommended)
 
-### 1. Clone the Repository
+Run everything with a single command - no installation or cloning required:
 
 ```bash
-git clone https://github.com/Winds-AI/Browser-MCP.git
-cd Browser-MCP
+npx @winds-ai/frontend-development-mcp-tools
 ```
 
-### 2. For Chrome Extension
+This single command will automatically:
+- Download the latest version
+- Install all dependencies
+- Build both MCP client and server
+- Start the browser tools server
+
+### Option 2: Global Installation
+
+```bash
+npm install -g @winds-ai/frontend-development-mcp-tools
+frontend-dev-mcp
+```
+
+### Option 3: Manual Setup (Development)
+
+If you want to clone and develop locally:
+
+```bash
+git clone https://github.com/Winds-AI/Frontend-development-mcp-tools.git
+cd Frontend-development-mcp-tools
+npm run setup
+npm start
+```
+
+### Chrome Extension Setup (Required for all options)
 
 1. Open Chrome and navigate to `chrome://extensions/`
 2. Toggle **"Developer mode"** on (top-right corner)
-3. Click **"Load unpacked"** (top-left corner)  
-4. Select the `chrome-extension` directory from the cloned repository
+3. Click **"Load unpacked"** (top-left corner)
+4. Select the `chrome-extension` directory from:
+   - **npx users**: The temporary directory shown in the console output
+   - **Global install**: Your global npm modules directory
+   - **Manual setup**: Your cloned repository directory
 
-### 3. Install Dependencies for MCP client and MCP server
-
-1. Run the following commands:
-```bash
-cd browser-tools-mcp
-npm install
-npm run build
-```
-
-AND
-
-```bash
-cd ../browser-tools-server
-npm install
-npm run build
-```
-
-After instaliing all dependencies, make sure that you reload your IDE window to ensure all import paths bind to the files properly
-
-### 4. Run MCP server
-
-1. Run the following commands:
-```bash
-cd ../browser-tools-server
-npm start
-```
+**Note**: For npx users, the extension directory path will be displayed when you run the command.
 
 After this repository setup, go to any chrome tab and open developer tools (F12) and navigate to the BrowserTools tab ( it will be where all the tabs like network, console etc are). You should see a connection status message. Just to make sure click on the test connection button and make sure that the port number is same as what server is running
 

@@ -9,7 +9,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "start": "tsc && node dist/mcp-server.js",
+    "start": "node dist/mcp-server.js",
+    "dev": "tsc && node dist/mcp-server.js",
     "prepublishOnly": "npm run build",
     "update": "npm run build && npm version patch && npm publish"
   },

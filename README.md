@@ -4,7 +4,61 @@
 
 Frontend Development MCP Tools enables AI tools to interact with your browser for enhanced development capabilities. This document provides an overview of the available tools within the MCP server.
 
-- For setup instructions, please refer to `SETUP_GUIDE.md`.
+## 🚀 Quick Installation
+
+### One-Command Setup with npx (Recommended)
+
+Run everything with a single command - no installation required:
+
+```bash
+npx @winds-ai/frontend-development-mcp-tools
+```
+
+That's it! This single command will automatically:
+- Download the package (if not cached)
+- Install all dependencies for both MCP client and server
+- Build both projects
+- Set up the necessary directories
+- Start the browser tools server
+
+### Alternative: Global Installation
+
+If you prefer to install globally:
+
+```bash
+npm install -g @winds-ai/frontend-development-mcp-tools
+frontend-dev-mcp
+```
+
+### Chrome Extension Setup
+
+1. Open Chrome and navigate to `chrome://extensions/`
+2. Toggle **"Developer mode"** on (top-right corner)
+3. Click **"Load unpacked"** (top-left corner)
+4. Select the `chrome-extension` directory from your global npm installation
+
+### For Development
+
+If you want to clone and develop locally:
+
+```bash
+git clone https://github.com/Winds-AI/Frontend-development-mcp-tools.git
+cd Frontend-development-mcp-tools
+npm run setup
+npm start
+```
+
+### Key Benefits of npx
+
+- ✅ **No global installation** - Always uses the latest version
+- ✅ **Zero configuration** - Everything happens automatically
+- ✅ **Cross-platform** - Works on Windows, macOS, and Linux
+- ✅ **Smart caching** - Faster subsequent runs
+- ✅ **Clean system** - No global packages cluttering your system
+
+## 📚 Documentation
+
+- For detailed setup instructions, please refer to `SETUP_GUIDE.md`.
 - For how to use these tools, please refer to `HOW_TO_USE.md`.
 - For a peek on future updates, please refer to `FUTURE_PLANS.md`.
 - For getting an overview of the project, please refer to `PROJECT_OVERVIEW.md`.

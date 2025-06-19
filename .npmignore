@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+browser-tools-mcp/node_modules/
+browser-tools-server/node_modules/
+chrome-extension/node_modules/
+
+# Build outputs
+browser-tools-mcp/dist/
+browser-tools-server/dist/
+*.tgz
+
+# Lock files (let npm install handle these)
+browser-tools-mcp/package-lock.json
+browser-tools-server/package-lock.json
+chrome-extension/package-lock.json
+
+# Logs and temp files
+logs/
+screenshots/
+*.log
+.DS_Store
+.env
+.env.local
+
+# Development files
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Test files
+browser-tools-server/test-screenshot-system.js
